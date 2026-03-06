@@ -4,6 +4,7 @@
     {
         SUCCESS,
         NOT_FOUND,
-        CONFLICT
+        CONFLICT,
+        BAD_REQUEST
     }
 }

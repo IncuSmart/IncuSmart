@@ -8,9 +8,11 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
-    <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.11.8" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
   </ItemGroup>
 

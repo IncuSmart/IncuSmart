@@ -1,53 +1,36 @@
-﻿namespace IncuSmart.API.Controllers
+﻿using IncuSmart.Core;
+
+namespace IncuSmart.API.Controllers
 {
     [ApiController]
     [Route("api/auth")]
     public class AuthController(IAuthUseCase _authUseCase) : ApiControllerBase
     {
-        private static readonly AuthMapper _authMapper = new();
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            string? result = await _authUseCase.Login(_authMapper.RequestToLoginCommand(request));
+            ResultModel<string?> result = await _authUseCase.Login(request.Adapt<LoginCommand>());
 
-            BaseResponse<LoginResponse> response = new();
-
-            if (result == null)
+            return FromResult(new BaseResponse<string>
             {
-                response.Data.JwtToken = null;
-                response.Message = "Invalid username or password";
-                response.StatusCode = API.StatusCode.NOT_FOUND;
-            }
-            else
-            {
-                LoginResponse data = new()
-                {
-                    JwtToken = result
-                };
-
-                response.Data = data;
-            }
-
-
-            return FromResult(response);
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            bool result = await _authUseCase.Register(_authMapper.RequestToRegisterCommand(request));
+            ResultModel<string?> result = await _authUseCase.Register(request.Adapt<RegisterCommand>());
 
-            BaseResponse<string> response = new();
-
-            if (!result) response = new()
+            return FromResult(new BaseResponse<string> 
             {
-                StatusCode = API.StatusCode.CONFLICT,
-                Message = "Username already exists",
-                Data = ""
-            };
-
-            return FromResult(response);
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
         }
     }
 }

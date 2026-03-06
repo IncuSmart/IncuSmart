@@ -1,4 +1,6 @@
-﻿namespace IncuSmart.Core.Domains
+﻿using IncuSmart.Core.Enums;
+
+namespace IncuSmart.Core.Domains
 {
     public class Customer : BaseDomain<BaseStatus>
     {

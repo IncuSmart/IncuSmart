@@ -1,42 +1,46 @@
-﻿namespace IncuSmart.Core.Usecases
+﻿using IncuSmart.Core.Enums;
+
+namespace IncuSmart.Core.Usecases
 {
     public class AuthUseCase : IAuthUseCase
     {
         private readonly IUserRepository _userRepository;
         private readonly ICustomerRepository _customerRepository;
-        private readonly IUnitOfWork _uow;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public AuthUseCase(IUserRepository userRepository, ICustomerRepository customerRepository, IUnitOfWork uow)
+        public AuthUseCase(IUserRepository userRepository, ICustomerRepository customerRepository, IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _customerRepository = customerRepository;
-            _uow = uow;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<string?> Login(LoginCommand command)
+        public async Task<ResultModel<string?>> Login(LoginCommand command)
         {
             User? user = await _userRepository
                         .FindByUserNameAndDeletedAtIsNull(
                             command.Username
                     );
 
-            if (user == null) return null;
+            if (user == null) return ResultModelUtils.FillResult<string?>("404", "Wrong username or password", null);
 
             bool isPasswordValid = PasswordUtil.VerifyPassword(command.Password, user.PasswordHash);
 
-            return isPasswordValid ? JwtUtil.GenerateToken(user) : null;
+            return isPasswordValid 
+                ? ResultModelUtils.FillResult<string?>("200", "Login successfully", JwtUtil.GenerateToken(user)) 
+                : ResultModelUtils.FillResult<string?>("404", "Wrong username or password", null);
         }
 
-        public async Task<bool> Register(RegisterCommand command)
+        public async Task<ResultModel<string?>> Register(RegisterCommand command)
         {
             User? user = await _userRepository
                         .FindByUserNameAndDeletedAtIsNull(
                             command.Username
                     );
 
-            if (user != null) return false;
+            if (user != null) return ResultModelUtils.FillResult<string?>("404", "Username is existed", null);
 
-            await _uow.BeginAsync();
+            await _unitOfWork.BeginAsync();
             try
             {
                 Guid userId = Guid.NewGuid();
@@ -50,13 +54,13 @@
                     Email = command.Email,
                     Phone = command.Phone,
                     Status = BaseStatus.ACTIVE,
-                    Role = Role.CUSTOMER,
+                    Role = UserRole.CUSTOMER,
                     CreatedBy = "SYSTEM",
                     CreatedAt = DateTime.UtcNow
                 };
 
                 await _userRepository.Add(newUser);
-                await _uow.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
 
                 Customer newCustomer = new()
                 {
@@ -67,14 +71,14 @@
                 };
 
                 await _customerRepository.Add(newCustomer);
-                await _uow.SaveChangesAsync();
-                await _uow.CommitAsync();
-                return true;
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+                return ResultModelUtils.FillResult<string?>("200", "Register successfully", null);
             }
-            catch
+            catch (Exception ex)
             {
-                await _uow.RollbackAsync();
-                throw;
+                await _unitOfWork.RollbackAsync();
+                return ResultModelUtils.FillResult<string?>("500", ex.Message, null); 
             }
         }
     }

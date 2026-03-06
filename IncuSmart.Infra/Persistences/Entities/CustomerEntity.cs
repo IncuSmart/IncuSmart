@@ -10,5 +10,8 @@
         public string? PinNumberHash { get; set; }
 
         public string? Address { get; set; }
+
+        [NotMapped]
+        public List<SalesOrderEntity> SalesOrders { get; set; } = [];
     }
 }

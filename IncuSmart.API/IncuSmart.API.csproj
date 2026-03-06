@@ -9,6 +9,9 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.9" />
+	</ItemGroup>
+	<ItemGroup>
 	  <ProjectReference Include="..\IncuSmart.Core\IncuSmart.Core.csproj" />
 	</ItemGroup>
 
