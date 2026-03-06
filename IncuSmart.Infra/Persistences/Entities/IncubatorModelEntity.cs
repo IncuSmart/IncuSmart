@@ -1,4 +1,6 @@
-﻿namespace IncuSmart.Infra.Persistences.Entities
+﻿using IncuSmart.Core.Enums;
+
+namespace IncuSmart.Infra.Persistences.Entities
 {
     [Table("incubator_models")]
     public class IncubatorModelEntity : BaseEntity<BaseStatus>

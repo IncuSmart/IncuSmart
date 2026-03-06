@@ -1,6 +1,6 @@
-﻿namespace IncuSmart.Core.Domains.Base
+﻿namespace IncuSmart.Core.Enums
 {
-    public enum Role
+    public enum UserRole
     {
         CUSTOMER,
         SALES_STAFF,

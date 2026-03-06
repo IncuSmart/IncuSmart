@@ -1,11 +1,11 @@
 ﻿namespace IncuSmart.API.Mappers
 {
-    [Mapper]
-    public partial class AuthMapper
+    public class AuthMapper : IRegister
     {
-        //[MapProperty(source: "SDT", target: "SDT", Use = nameof(toVNDNumber))]
-        public partial LoginCommand RequestToLoginCommand(LoginRequest request);
-
-        public partial RegisterCommand RequestToRegisterCommand(RegisterRequest request);
+        public void Register(TypeAdapterConfig config)
+        {
+            config.NewConfig<LoginRequest, LoginCommand>();
+            config.NewConfig<RegisterRequest, RegisterCommand>();
+        }
     }
 }

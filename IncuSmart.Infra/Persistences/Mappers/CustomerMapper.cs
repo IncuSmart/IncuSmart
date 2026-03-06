@@ -1,11 +1,10 @@
-﻿using IncuSmart.Core.Domain;
-
-namespace IncuSmart.Infra.Persistences.Mappers
-{
-    [Mapper]
-    public partial class CustomerMapper
+﻿namespace IncuSmart.Infra.Persistences.Mappers{    
+    public class CustomerMapper : IRegister
     {
-        public partial CustomerEntity ToEntity(Customer domain);
-        public partial Customer ToDomain(CustomerEntity entity);
+        public void Register(TypeAdapterConfig config)
+        {
+            config.NewConfig<CustomerEntity, Customer>();
+            config.NewConfig<Customer, CustomerEntity>();
+        }
     }
 }

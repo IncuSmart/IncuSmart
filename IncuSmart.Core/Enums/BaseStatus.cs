@@ -1,4 +1,4 @@
-﻿namespace IncuSmart.Core.Domains.Base
+﻿namespace IncuSmart.Core.Enums
 {
     public enum BaseStatus
     {

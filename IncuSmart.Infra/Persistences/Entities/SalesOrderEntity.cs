@@ -5,7 +5,7 @@
     {
         public string? OrderCode { get; set; }
 
-        public Guid CustomerId { get; set; }
+        public Guid? CustomerId { get; set; }
 
         public DateTime? OrderDate { get; set; }
     }

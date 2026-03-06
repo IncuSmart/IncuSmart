@@ -9,3 +9,7 @@ global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
 global using System.Text;
 global using IncuSmart.Core.Domains;
+global using IncuSmart.Core.Enums;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
+global using StackExchange.Redis;

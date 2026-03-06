@@ -1,7 +1,9 @@
 ﻿namespace IncuSmart.Core
 {
-    public abstract class ResultModel
+    public class ResultModel<T>
     {
-        public string? Message;
+        public string StatusCode = "200";
+        public string? Message; 
+        public T? Data;
     }
 }

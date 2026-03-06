@@ -1,4 +1,6 @@
-﻿namespace IncuSmart.Infra.Persistences.Entities
+﻿using IncuSmart.Core.Enums;
+
+namespace IncuSmart.Infra.Persistences.Entities
 {
     [Table("users")]
     public class UserEntity : BaseEntity<BaseStatus>
@@ -13,7 +15,6 @@
 
         public string Phone { get; set; } = string.Empty;
 
-        public Role Role { get; set; }
+        public UserRole Role { get; set; }
     }
-
 }

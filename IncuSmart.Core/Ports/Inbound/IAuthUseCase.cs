@@ -2,8 +2,8 @@
 {
     public interface IAuthUseCase
     {
-        Task<string?> Login(LoginCommand command);
+        Task<ResultModel<string?>> Login(LoginCommand command);
 
-        Task<bool> Register(RegisterCommand command);
+        Task<ResultModel<string?>> Register(RegisterCommand command);
     }
 }

@@ -12,6 +12,6 @@
 
         public string Phone { get; set; } = string.Empty;
 
-        public Role Role { get; set; }
+        public UserRole Role { get; set; }
     }
 }

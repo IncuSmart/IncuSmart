@@ -1,9 +1,11 @@
 ﻿namespace IncuSmart.Infra.Persistences.Mapper
 {
-    [Mapper]
-    public partial class UserMapper
+    public class UserMapper : IRegister
     {
-        public partial UserEntity ToEntity(User domain);
-        public partial User ToDomain(UserEntity entity);
+        public void Register(TypeAdapterConfig config)
+        {
+            config.NewConfig<UserEntity, User>();
+            config.NewConfig<User, UserEntity>();
+        }
     }
 }
