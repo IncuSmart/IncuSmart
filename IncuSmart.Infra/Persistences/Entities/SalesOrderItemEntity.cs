@@ -6,7 +6,7 @@ namespace IncuSmart.Infra.Persistences.Entities
     public class SalesOrderItemEntity : BaseEntity<BaseStatus>
     {
         public Guid OrderId { get; set; }
-
-        public Guid IncubatorId { get; set; }
+        public Guid IncubatorModelId { get; set; }
+        public Guid? IncubatorId { get; set; }
     }
 }

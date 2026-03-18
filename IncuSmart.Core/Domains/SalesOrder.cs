@@ -7,5 +7,7 @@
         public Guid? CustomerId { get; set; }
 
         public DateTime? OrderDate { get; set; }
+
+        public string ShippingAddress { get; set; } = string.Empty;
     }
 }
