@@ -95,7 +95,6 @@ namespace IncuSmart.Core.Usecases
                         var incubator = new Incubator
                         {
                             Id = Guid.NewGuid(),
-                            OrderId = salesOrder.Id,
                             QrCode = Guid.NewGuid().ToString(),
                             ModelId = item.IncubatorModelId,
                             CustomerId = customer.Id,
@@ -206,7 +205,6 @@ namespace IncuSmart.Core.Usecases
                         var incubator = new Incubator
                         {
                             Id = Guid.NewGuid(),
-                            OrderId = salesOrder.Id,
                             QrCode = Guid.NewGuid().ToString(),
                             ModelId = item.IncubatorModelId,
                             CustomerId = null,
