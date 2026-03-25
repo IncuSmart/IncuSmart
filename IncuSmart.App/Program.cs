@@ -1,4 +1,8 @@
+using IncuSmart.Core.Ports.Inbound;
+using IncuSmart.Core.Ports.Outbound;
+using IncuSmart.Core.Usecases;
 using IncuSmart.Core.Utils;
+using IncuSmart.Infra.Persistences.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -14,6 +18,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// Repositories
+builder.Services.AddScoped<IIncubatorRepository, IncubatorRepository>();
+
+// Use cases
+builder.Services.AddScoped<IIncubatorUseCase, IncubatorUseCase>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>

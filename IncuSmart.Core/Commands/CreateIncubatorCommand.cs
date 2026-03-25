@@ -1,9 +1,12 @@
-﻿using IncuSmart.Core.Enums;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace IncuSmart.Infra.Persistences.Entities
+namespace IncuSmart.Core.Commands
 {
-    [Table("incubators")]
-    public class IncubatorEntity : BaseEntity<IncubatorStatus>
+    public class CreateIncubatorCommand
     {
         public string QrCode { get; set; } = string.Empty;
         public Guid ModelId { get; set; }

@@ -3,5 +3,9 @@
     public interface IIncubatorRepository
     {
         Task Add(Incubator incubator);
+        Task<Incubator?> FindById(Guid id);
+        Task<Incubator?> FindByQrCode(string qrCode);
+        Task<List<Incubator>> FindAll();
+        Task<List<Incubator>> FindByCustomerId(Guid customerId);
     }
 }
