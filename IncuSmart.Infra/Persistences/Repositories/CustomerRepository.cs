@@ -20,5 +20,12 @@
             CustomerEntity? entity = await _dbContext.Customers.FirstOrDefaultAsync(x => x.Id == id);
             return entity != null ? entity.Adapt<Customer>() : null;
         }
+
+        public async Task<Customer?> FindByUserId(Guid userId)
+        {
+            CustomerEntity? entity = await _dbContext.Customers.FirstOrDefaultAsync(c => c.UserId.Equals(userId));
+            return entity != null ? entity.Adapt<Customer>() : null;
+
+        }
     }
 }

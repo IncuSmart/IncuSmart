@@ -8,7 +8,6 @@ namespace IncuSmart.Core.Domains
 {
     public class Incubator : BaseDomain<IncubatorStatus>
     {
-        public string QrCode { get; set; } = string.Empty;
         public Guid ModelId { get; set; }
         public Guid? CustomerId { get; set; }
         public DateTime? ActivatedAt { get; set; }

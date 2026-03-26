@@ -8,10 +8,6 @@ namespace IncuSmart.API.Requests
 {
     public class CreateIncubatorRequest
     {
-        [Required(ErrorMessage = "QrCode is required")]
-        [MinLength(2, ErrorMessage = "QrCode must be at least 2 characters")]
-        [MaxLength(255, ErrorMessage = "QrCode must be at most 255 characters")]
-        public string QrCode { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "ModelId is required")]
         public Guid ModelId { get; set; }

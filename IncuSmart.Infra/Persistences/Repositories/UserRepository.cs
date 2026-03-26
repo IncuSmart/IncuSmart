@@ -1,4 +1,5 @@
-﻿namespace IncuSmart.Infra.Persistences.Repositories
+﻿
+namespace IncuSmart.Infra.Persistences.Repositories
 {
     public class UserRepository : IUserRepository
     {
@@ -31,6 +32,12 @@
         {
             UserEntity entity = user.Adapt<UserEntity>();
             await _dbContext.AddAsync(entity);
+        }
+
+        public async Task<User?> FindById(Guid id)
+        {
+            UserEntity? entity =  await _dbContext.Users.FirstOrDefaultAsync(u => u.Id.Equals(id));
+            return entity?.Adapt<User>();
         }
     }
 }

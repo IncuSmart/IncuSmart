@@ -9,7 +9,6 @@ namespace IncuSmart.Core.Commands
     public class UpdateIncubatorCommand
     {
         public Guid Id { get; set; }
-        public string? QrCode { get; set; }
         public Guid? ModelId { get; set; }
         public Guid? CustomerId { get; set; }
         public DateTime? ActivatedAt { get; set; }

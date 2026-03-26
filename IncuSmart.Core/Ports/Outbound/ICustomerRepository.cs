@@ -7,5 +7,6 @@ namespace IncuSmart.Core.Ports.Outbound
         Task Add(Customer customer);
 
         Task<Customer?> FindById(Guid id);
+        Task<Customer?> FindByUserId(Guid userId);
     }
 }

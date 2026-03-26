@@ -95,7 +95,6 @@ namespace IncuSmart.Core.Usecases
                         var incubator = new Incubator
                         {
                             Id = Guid.NewGuid(),
-                            QrCode = Guid.NewGuid().ToString(),
                             ModelId = item.IncubatorModelId,
                             CustomerId = customer.Id,
                             Status = IncubatorStatus.PENDING,
@@ -205,7 +204,6 @@ namespace IncuSmart.Core.Usecases
                         var incubator = new Incubator
                         {
                             Id = Guid.NewGuid(),
-                            QrCode = Guid.NewGuid().ToString(),
                             ModelId = item.IncubatorModelId,
                             CustomerId = null,
                             Status = IncubatorStatus.PENDING_CLAIM,

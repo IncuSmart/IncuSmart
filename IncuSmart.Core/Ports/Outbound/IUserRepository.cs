@@ -8,5 +8,7 @@
         Task<User?> FindByUserNameAndDeletedAtIsNull(string userName);
 
         Task Add(User user);
+        Task<User?> FindById(Guid id);
+
     }
 }

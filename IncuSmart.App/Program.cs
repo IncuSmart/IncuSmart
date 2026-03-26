@@ -21,9 +21,15 @@ builder.Services.AddEndpointsApiExplorer();
 
 // Repositories
 builder.Services.AddScoped<IIncubatorRepository, IncubatorRepository>();
+builder.Services.AddScoped<IWarrantyRepository, WarrantyRepository>();
+builder.Services.AddScoped<IMaintenanceTicketRepository, MaintenanceTicketRepository>();
+builder.Services.AddScoped<IMaintenanceLogRepository, MaintenanceLogRepository>();
+
 
 // Use cases
 builder.Services.AddScoped<IIncubatorUseCase, IncubatorUseCase>();
+builder.Services.AddScoped<IWarrantyUseCase, WarrantyUseCase>();
+builder.Services.AddScoped<IMaintenanceTicketUseCase, MaintenanceTicketUseCase>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>

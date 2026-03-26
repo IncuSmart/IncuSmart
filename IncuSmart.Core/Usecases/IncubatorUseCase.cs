@@ -27,7 +27,6 @@ namespace IncuSmart.Core.Usecases
                 var incubator = new Incubator
                 {
                     Id = Guid.NewGuid(),
-                    QrCode = command.QrCode,
                     ModelId = command.ModelId,
                     CustomerId = command.CustomerId,
                     ActivatedAt = command.ActivatedAt,
@@ -70,7 +69,6 @@ namespace IncuSmart.Core.Usecases
             await _unitOfWork.BeginAsync();
             try
             {
-                incubator.QrCode = command.QrCode ?? incubator.QrCode;
                 incubator.ModelId = command.ModelId ?? incubator.ModelId;
                 incubator.CustomerId = command.CustomerId ?? incubator.CustomerId;
                 incubator.ActivatedAt = command.ActivatedAt ?? incubator.ActivatedAt;

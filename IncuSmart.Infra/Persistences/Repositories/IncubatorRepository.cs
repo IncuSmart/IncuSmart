@@ -21,14 +21,6 @@ namespace IncuSmart.Infra.Persistences.Repositories
                 .FirstOrDefaultAsync(x => x.Id == id && x.DeletedAt == null);
             return entity?.Adapt<Incubator>();
         }
-
-        public async Task<Incubator?> FindByQrCode(string qrCode)
-        {
-            var entity = await _dbContext.Incubators
-                .FirstOrDefaultAsync(x => x.QrCode == qrCode && x.DeletedAt == null);
-            return entity?.Adapt<Incubator>();
-        }
-
         public async Task<List<Incubator>> FindAll() =>
             (await _dbContext.Incubators
                 .Where(x => x.DeletedAt == null)

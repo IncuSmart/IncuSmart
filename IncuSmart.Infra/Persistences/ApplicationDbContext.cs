@@ -18,6 +18,10 @@ namespace IncuSmart.Infra.Persistences
         public DbSet<IncubatorModelConfigEntity> IncubatorModelConfigs { get; set; } = null!;
         public DbSet<IncubatorConfigInstanceEntity> IncubatorConfigInstances { get; set; } = null!;
         public DbSet<GuestOrderInfoEntity> GuestOrderInfos { get; set; } = null!;
+        public DbSet<WarrantyEntity> Warranties { get; set; } = null!;
+
+        public DbSet<MaintenanceTicketEntity> MaintenanceTickets { get; set; } = null!;
+        public DbSet<MaintenanceLogEntity> MaintenanceLogs { get; set; } = null!;
 
         public DbSet<ConfigEntity> Configs { get; set; } = null!;
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IncuSmart.Core.Domains
+namespace IncuSmart.API.Requests
 {
-    public class MaintenanceTicket : BaseDomain<BaseStatus>
+    public class CreateMaintenanceTicketRequest
     {
+        [Required(ErrorMessage = "IncubatorId is required")]
         public Guid IncubatorId { get; set; }
-        public Guid TechnicianId { get; set; }
-        public DateTime? ClosedAt { get; set; }
-    }
 
+        [Required(ErrorMessage = "TechnicianId is required")]
+        public Guid TechnicianId { get; set; }
+    }
 }
