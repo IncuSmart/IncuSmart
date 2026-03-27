@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,11 +8,10 @@ namespace IncuSmart.Core.Ports.Inbound
 {
     public interface IConfigUseCase
     {
-        Task<ResultModel<Guid?>> Create(CreateConfigCommand command);
-        Task<ResultModel<Config?>> GetById(Guid id);
-        Task<ResultModel<List<Config>>> GetAll();
-        Task<ResultModel<bool>> Update(UpdateConfigCommand command);
-        Task<ResultModel<bool>> Delete(Guid id);
+        Task<ResultModel<Guid?>>         Create(CreateConfigCommand command);
+        Task<ResultModel<Config?>>       GetById(Guid id);
+        Task<ResultModel<List<Config>>>  GetAll(string? type, string? status);
+        Task<ResultModel<bool>>          Update(UpdateConfigCommand command);
+        Task<ResultModel<bool>>          Delete(Guid id);
     }
-
 }

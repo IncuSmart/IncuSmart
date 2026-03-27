@@ -24,12 +24,15 @@ builder.Services.AddScoped<IIncubatorRepository, IncubatorRepository>();
 builder.Services.AddScoped<IWarrantyRepository, WarrantyRepository>();
 builder.Services.AddScoped<IMaintenanceTicketRepository, MaintenanceTicketRepository>();
 builder.Services.AddScoped<IMaintenanceLogRepository, MaintenanceLogRepository>();
+builder.Services.AddScoped<IConfigRepository, ConfigRepository>();
 
 
 // Use cases
 builder.Services.AddScoped<IIncubatorUseCase, IncubatorUseCase>();
 builder.Services.AddScoped<IWarrantyUseCase, WarrantyUseCase>();
 builder.Services.AddScoped<IMaintenanceTicketUseCase, MaintenanceTicketUseCase>();
+builder.Services.AddScoped<IConfigUseCase, ConfigUseCase>();
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
