@@ -22,6 +22,13 @@ namespace IncuSmart.Infra.Persistences
 
         public DbSet<MaintenanceTicketEntity> MaintenanceTickets { get; set; } = null!;
         public DbSet<MaintenanceLogEntity> MaintenanceLogs { get; set; } = null!;
+        public DbSet<MasterboardEntity> Masterboards { get; set; } = null!;
+        public DbSet<SensorEntity> Sensors { get; set; } = null!;
+        public DbSet<SensorReadingEntity> SensorReadings { get; set; } = null!;
+
+
+
+
 
         public DbSet<ConfigEntity> Configs { get; set; } = null!;
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

@@ -25,6 +25,11 @@ builder.Services.AddScoped<IWarrantyRepository, WarrantyRepository>();
 builder.Services.AddScoped<IMaintenanceTicketRepository, MaintenanceTicketRepository>();
 builder.Services.AddScoped<IMaintenanceLogRepository, MaintenanceLogRepository>();
 builder.Services.AddScoped<IConfigRepository, ConfigRepository>();
+builder.Services.AddScoped<ISensorReadingRepository, SensorReadingRepository>();
+builder.Services.AddScoped<ISensorRepository, SensorRepository>();
+builder.Services.AddScoped<IMasterboardRepository, MasterboardRepository>();
+
+
 
 
 // Use cases
@@ -32,6 +37,10 @@ builder.Services.AddScoped<IIncubatorUseCase, IncubatorUseCase>();
 builder.Services.AddScoped<IWarrantyUseCase, WarrantyUseCase>();
 builder.Services.AddScoped<IMaintenanceTicketUseCase, MaintenanceTicketUseCase>();
 builder.Services.AddScoped<IConfigUseCase, ConfigUseCase>();
+builder.Services.AddScoped<ISensorReadingUseCase, SensorReadingUseCase>();
+builder.Services.AddScoped<ISensorUseCase, SensorUseCase>();
+
+
 
 
 builder.Services.AddControllers()
