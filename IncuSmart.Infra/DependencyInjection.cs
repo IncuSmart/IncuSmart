@@ -21,6 +21,7 @@
         // Inject use cases
         services.AddScoped<IAuthUseCase, AuthUseCase>();
         services.AddScoped<IOrderUseCase, OrderUseCase>();
+        services.AddScoped<IAlertUseCase, AlertUseCase>();
 
         // Inject repositories
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -33,6 +34,7 @@
         services.AddScoped<IIncubatorConfigInstanceRepository, IncubatorConfigInstanceRepository>();
         services.AddScoped<IGuestOrderInfoRepository, GuestOrderInfoRepository>();
         services.AddScoped<IConfigRepository, ConfigRepository>();
+        services.AddScoped<IAlertRepository, AlertRepository>();
         services.AddScoped<IIncubatorModelRepository, IncubatorModelRepository>();
         services.AddScoped<IIncubatorModelConfigRepository, IncubatorModelConfigRepository>();
         services.AddScoped<IConfigUseCase, ConfigUseCase>();

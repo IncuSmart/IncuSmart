@@ -1,4 +1,4 @@
-﻿namespace IncuSmart.Core.Ports.Outbound
+namespace IncuSmart.Core.Ports.Outbound
 {
     public interface IUserRepository
     {
@@ -8,5 +8,7 @@
         Task<User?> FindByUserNameAndDeletedAtIsNull(string userName);
 
         Task Add(User user);
+
+        Task<User?> FindById(Guid id);
     }
 }

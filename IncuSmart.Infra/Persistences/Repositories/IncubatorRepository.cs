@@ -1,4 +1,9 @@
-﻿
+﻿using IncuSmart.Core.Domains;
+using IncuSmart.Core.Ports.Outbound;
+using IncuSmart.Infra.Persistences.Entities;
+using Mapster;
+using Microsoft.EntityFrameworkCore;
+
 namespace IncuSmart.Infra.Persistences.Repositories
 {
     public class IncubatorRepository : IIncubatorRepository

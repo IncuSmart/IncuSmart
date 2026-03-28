@@ -32,5 +32,11 @@
             UserEntity entity = user.Adapt<UserEntity>();
             await _dbContext.AddAsync(entity);
         }
+
+        public async Task<User?> FindById(Guid id)
+        {
+            UserEntity? entity = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == id && x.DeletedAt == null);
+            return entity != null ? entity.Adapt<User>() : null;
+        }
     }
 }

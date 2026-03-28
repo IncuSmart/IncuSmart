@@ -1,4 +1,4 @@
-﻿using IncuSmart.Core.Domains;
+using IncuSmart.Core.Domains;
 
 namespace IncuSmart.Core.Ports.Outbound
 {

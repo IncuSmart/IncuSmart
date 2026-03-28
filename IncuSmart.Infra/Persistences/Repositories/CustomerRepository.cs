@@ -1,4 +1,4 @@
-﻿namespace IncuSmart.Infra.Persistences.Repositories
+namespace IncuSmart.Infra.Persistences.Repositories
 {
     public class CustomerRepository : ICustomerRepository
     {
