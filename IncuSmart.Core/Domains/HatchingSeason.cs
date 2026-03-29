@@ -19,6 +19,7 @@ namespace IncuSmart.Core.Domains
         public int SuccessCount { get; set; } = 0;
         public int FailCount { get; set; } = 0;
         public string? Notes { get; set; }
+
     }
 
 }

@@ -14,5 +14,9 @@
         public int SuccessCount { get; set; } = 0;
         public int FailCount { get; set; } = 0;
         public string? Notes { get; set; }
+
+        [ForeignKey("IncubatorId")]
+        public IncubatorEntity? Incubator { get; set; }
+
     }
 }
