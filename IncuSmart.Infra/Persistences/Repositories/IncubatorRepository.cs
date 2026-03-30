@@ -20,5 +20,13 @@ namespace IncuSmart.Infra.Persistences.Repositories
             IncubatorEntity entity = incubator.Adapt<IncubatorEntity>();
             await _dbContext.AddAsync(entity);
         }
+
+        public async Task<IEnumerable<Incubator>> FindByCustomerId(Guid customerId)
+        {
+            var entities = await _dbContext.Incubators
+                .Where(i => i.CustomerId == customerId)
+                .ToListAsync();
+            return entities.Adapt<IEnumerable<Incubator>>();
+        }
     }
 }
