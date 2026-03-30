@@ -25,7 +25,12 @@ namespace IncuSmart.Infra.Persistences
         public DbSet<MasterboardEntity> Masterboards { get; set; } = null!;
         public DbSet<SensorEntity> Sensors { get; set; } = null!;
         public DbSet<SensorReadingEntity> SensorReadings { get; set; } = null!;
-
+        public DbSet<HatchingSeasonTemplateEntity> HatchingSeasonTemplates { get; set; } = null!;
+        public DbSet<HatchingSeasonTemplateBatchEntity> HatchingSeasonTemplateBatches { get; set; } = null!;
+        public DbSet<HatchingSeasonTemplateBatchConfigEntity> HatchingSeasonTemplateBatchConfigs { get; set; } = null!;
+        public DbSet<HatchingSeasonEntity> HatchingSeasons { get; set; } = null!;
+        public DbSet<HatchingBatchEntity> HatchingBatches { get; set; } = null!;
+        public DbSet<HatchingBatchConfigEntity> HatchingBatchConfigs { get; set; } = null!;
 
 
 

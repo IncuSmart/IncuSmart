@@ -1,4 +1,6 @@
-﻿public static class DependencyInjection
+﻿using IncuSmart.Core.Ports.Inbound;
+
+public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
@@ -21,6 +23,15 @@
         // Inject use cases
         services.AddScoped<IAuthUseCase, AuthUseCase>();
         services.AddScoped<IOrderUseCase, OrderUseCase>();
+        services.AddScoped<IIncubatorUseCase, IncubatorUseCase>();
+        services.AddScoped<IWarrantyUseCase, WarrantyUseCase>();
+        services.AddScoped<IMaintenanceTicketUseCase, MaintenanceTicketUseCase>();
+        services.AddScoped<IConfigUseCase, ConfigUseCase>();
+        services.AddScoped<ISensorReadingUseCase, SensorReadingUseCase>();
+        services.AddScoped<ISensorUseCase, SensorUseCase>();
+        services.AddScoped<IHatchingSeasonTemplateUseCase, HatchingSeasonTemplateUseCase>();
+        services.AddScoped<IHatchingSeasonUseCase, HatchingSeasonUseCase>();
+        services.AddScoped<IHatchingBatchUseCase, HatchingBatchUseCase>();
 
         // Inject repositories
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -37,6 +48,21 @@
         services.AddScoped<IIncubatorModelConfigRepository, IncubatorModelConfigRepository>();
         services.AddScoped<IConfigUseCase, ConfigUseCase>();
         services.AddScoped<IIncubatorModelUseCase, IncubatorModelUseCase>();
+        services.AddScoped<IIncubatorRepository, IncubatorRepository>();
+        services.AddScoped<IWarrantyRepository, WarrantyRepository>();
+        services.AddScoped<IMaintenanceTicketRepository, MaintenanceTicketRepository>();
+        services.AddScoped<IMaintenanceLogRepository, MaintenanceLogRepository>();
+        services.AddScoped<IConfigRepository, ConfigRepository>();
+        services.AddScoped<ISensorReadingRepository, SensorReadingRepository>();
+        services.AddScoped<ISensorRepository, SensorRepository>();
+        services.AddScoped<IMasterboardRepository, MasterboardRepository>();
+        services.AddScoped<IHatchingSeasonRepository, HatchingSeasonRepository>();
+        services.AddScoped<IHatchingBatchRepository, HatchingBatchRepository>();
+        services.AddScoped<IHatchingBatchConfigRepository, HatchingBatchConfigRepository>();
+        services.AddScoped<IHatchingSeasonTemplateRepository, HatchingSeasonTemplateRepository>();
+        services.AddScoped<IHatchingSeasonTemplateBatchRepository, HatchingSeasonTemplateBatchRepository>();
+        services.AddScoped<IHatchingSeasonTemplateBatchConfigRepository, HatchingSeasonTemplateBatchConfigRepository>();
+
 
 
         // Inject utils
