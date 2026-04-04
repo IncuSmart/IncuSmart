@@ -1,9 +1,6 @@
-using IncuSmart.Core.Domains.Base;
-using IncuSmart.Core.Enums;
+namespace IncuSmart.Core.Commands;
 
-namespace IncuSmart.Core.Domains;
-
-public class ControlDevice : BaseDomain<BaseStatus>
+public class CreateControlDeviceCommand
 {
     public Guid MasterboardId { get; set; }
     public Guid? ControlBoardTypesId { get; set; }
