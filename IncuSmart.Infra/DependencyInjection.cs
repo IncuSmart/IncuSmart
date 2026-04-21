@@ -21,6 +21,7 @@
         // Inject use cases
         services.AddScoped<IAuthUseCase, AuthUseCase>();
         services.AddScoped<IOrderUseCase, OrderUseCase>();
+        services.AddScoped<IFileUploadUseCase, FileUploadUseCase>();
 
         // Inject repositories
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -37,6 +38,10 @@
         services.AddScoped<IIncubatorModelConfigRepository, IncubatorModelConfigRepository>();
         services.AddScoped<IConfigUseCase, ConfigUseCase>();
         services.AddScoped<IIncubatorModelUseCase, IncubatorModelUseCase>();
+        services.AddScoped<IFileUploadRepository, FileUploadRepository>();
+
+        // Inject services
+        services.AddScoped<IFileUploadService, FileUploadService>();
 
 
         // Inject utils

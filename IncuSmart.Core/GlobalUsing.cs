@@ -4,6 +4,7 @@ global using IncuSmart.Core.Domains.Base;
 global using IncuSmart.Core.Ports.Inbound;
 global using IncuSmart.Core.Ports.Outbound;
 global using IncuSmart.Core.Utils;
+global using IncuSmart.Core.Responses;
 global using Microsoft.IdentityModel.Tokens;
 global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
