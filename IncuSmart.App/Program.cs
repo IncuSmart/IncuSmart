@@ -16,6 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -125,6 +130,7 @@ if (builder.Configuration.GetValue<bool>("Database:RunCodeFirst"))
 
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
