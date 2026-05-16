@@ -35,7 +35,7 @@ namespace IncuSmart.Core.Utils
         public static string GenerateByFormat(string format)
         {
             const string digits = "0123456789";
-            const string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const string letters = "    ";
 
             return string.Concat(format.Select(c => c switch
             {
@@ -44,6 +44,9 @@ namespace IncuSmart.Core.Utils
                 _ => c.ToString()
             }));
         }
+
+        public static string GenerateSeasonCode() =>
+            "HS-" + DateTime.UtcNow.ToString("yyyyMMdd") + "-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
     }
 
 }

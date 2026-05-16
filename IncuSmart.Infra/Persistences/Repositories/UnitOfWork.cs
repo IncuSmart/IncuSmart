@@ -19,9 +19,25 @@ namespace IncuSmart.Infra.Persistences.Repositories
             => await _ctx.SaveChangesAsync();
 
         public async Task CommitAsync()
-            => await _tx!.CommitAsync();
+        {
+            await _ctx.SaveChangesAsync();
+
+            if (_tx != null)
+            {
+                await _tx.CommitAsync();
+                await _tx.DisposeAsync();
+                _tx = null;
+            }
+        }
 
         public async Task RollbackAsync()
-            => await _tx!.RollbackAsync();
+        {
+            if (_tx != null)
+            {
+                await _tx.RollbackAsync();
+                await _tx.DisposeAsync();
+                _tx = null;
+            }
+        }
     }
 }
