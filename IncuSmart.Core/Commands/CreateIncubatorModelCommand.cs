@@ -5,6 +5,7 @@
         public string? ModelCode { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
+        public long UnitPrice { get; set; }
         public List<ModelConfigItemCommand> Configs { get; set; } = [];
     }
 

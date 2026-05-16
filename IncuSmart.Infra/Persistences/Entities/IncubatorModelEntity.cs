@@ -10,5 +10,7 @@ namespace IncuSmart.Infra.Persistences.Entities
         public string? Name { get; set; }
 
         public string? Description { get; set; }
+
+        public long UnitPrice { get; set; }
     }
 }
