@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IncuSmart.Core.Domains
 {
-    public class HatchingSeason : BaseDomain<BaseStatus>
+    public class HatchingSeason : BaseDomain<HatchingSeasonStatus>
     {
         public Guid IncubatorId { get; set; }
         public Guid? TemplateId { get; set; }

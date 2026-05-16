@@ -1,26 +1,34 @@
-﻿using IncuSmart.Core.Domains;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using IncuSmart.Core.Domains;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IncuSmart.API.Controllers
 {
     [ApiController]
     [Route("api/incubator-models")]
-    public class IncubatorModelController : ApiControllerBase
+    public class IncubatorModelController(IIncubatorModelUseCase _modelUseCase, IAuditLogUseCase _auditLogUseCase) : ApiControllerBase
     {
-        private readonly IIncubatorModelUseCase _modelUseCase;
-        public IncubatorModelController(IIncubatorModelUseCase modelUseCase) => _modelUseCase = modelUseCase;
-
+        [Authorize(Roles = "ADMIN,TECHNICIAN")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateIncubatorModelRequest request)
         {
             var result = await _modelUseCase.Create(request.Adapt<CreateIncubatorModelCommand>());
-            return FromResult(new BaseResponse<Guid?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+            return await FromResultAndAudit(
+                new BaseResponse<Guid?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data },
+                _auditLogUseCase,
+                HttpContext.GetId(),
+                AuditAction.CREATE,
+                AuditEntityType.INCUBATOR_MODEL);
         }
 
+        [Authorize(Roles = "ADMIN,SALES_STAFF,TECHNICIAN,CUSTOMER")]
+        [HttpGet]
+        public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var result = await _modelUseCase.List(status, search, page, pageSize);
+            return FromResult(new BaseResponse<PagedResult<IncubatorModel>> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+        }
+
+        [Authorize(Roles = "ADMIN,SALES_STAFF,TECHNICIAN,CUSTOMER")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -28,28 +36,34 @@ namespace IncuSmart.API.Controllers
             return FromResult(new BaseResponse<IncubatorModel?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var result = await _modelUseCase.GetAll();
-            return FromResult(new BaseResponse<List<IncubatorModel>> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
-        }
-
+        [Authorize(Roles = "ADMIN,TECHNICIAN")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateIncubatorModelRequest request)
         {
             var command = request.Adapt<UpdateIncubatorModelCommand>();
             command.Id = id;
             var result = await _modelUseCase.Update(command);
-            return FromResult(new BaseResponse<bool> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+            return await FromResultAndAudit(
+                new BaseResponse<bool> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data },
+                _auditLogUseCase,
+                HttpContext.GetId(),
+                AuditAction.UPDATE,
+                AuditEntityType.INCUBATOR_MODEL,
+                id);
         }
 
+        [Authorize(Roles = "ADMIN,TECHNICIAN")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _modelUseCase.Delete(id);
-            return FromResult(new BaseResponse<bool> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+            return await FromResultAndAudit(
+                new BaseResponse<bool> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data },
+                _auditLogUseCase,
+                HttpContext.GetId(),
+                AuditAction.DELETE,
+                AuditEntityType.INCUBATOR_MODEL,
+                id);
         }
     }
-
 }

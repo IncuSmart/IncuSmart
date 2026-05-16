@@ -8,11 +8,11 @@ namespace IncuSmart.Core.Enums
 {
     public enum IncubatorStatus
     {
-        PENDING,
-        PENDING_CLAIM,
+        AVAILABLE,
+        RESERVED,
         ACTIVE,
-        INACTIVE,
-        MAINTENANCE,
+        REPLACEMENT_PENDING,
+        IN_MAINTENANCE,
         DAMAGED,
         RETIRED
     }

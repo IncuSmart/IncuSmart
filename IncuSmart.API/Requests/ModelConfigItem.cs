@@ -8,13 +8,17 @@ namespace IncuSmart.API.Requests
 {
     public class ModelConfigItem
     {
-        [Required(ErrorMessage = "ConfigId is required")]
+        [Required(ErrorMessage = CommonConst.ConfigIdRequired)]
         public Guid ConfigId { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0")]
+        [Range(1, int.MaxValue, ErrorMessage = CommonConst.QuantityMustBeGreaterThanZeroValidation)]
         public int? Quantity { get; set; }
 
         public bool? Required { get; set; }
+
+        public decimal? AbsoluteMin { get; set; }
+
+        public decimal? AbsoluteMax { get; set; }
     }
 
 }

@@ -22,11 +22,11 @@ namespace IncuSmart.API.Requests
         public string? Description { get; set; }
 
         [Required]
-        [MinLength(6, ErrorMessage = "Verification pass must be at least 6 characters")]
+        [MinLength(6, ErrorMessage = CommonConst.VerificationPassMinLength)]
         public string VerificationPass { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(1, ErrorMessage = "At least one item is required")]
+        [MinLength(1, ErrorMessage = CommonConst.AtLeastOneItemRequired)]
         public List<OrderItemRequest> Items { get; set; } = [];
     }
 

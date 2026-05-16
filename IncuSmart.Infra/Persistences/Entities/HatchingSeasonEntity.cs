@@ -1,7 +1,7 @@
 ﻿namespace IncuSmart.Infra.Persistences.Entities
 {
     [Table("hatching_seasons")]
-    public class HatchingSeasonEntity : BaseEntity<BaseStatus>
+    public class HatchingSeasonEntity : BaseEntity<HatchingSeasonStatus>
     {
         public Guid IncubatorId { get; set; }
         public Guid? TemplateId { get; set; }
@@ -14,5 +14,8 @@
         public int SuccessCount { get; set; } = 0;
         public int FailCount { get; set; } = 0;
         public string? Notes { get; set; }
+
+        [ForeignKey("IncubatorId")]
+        public IncubatorEntity? Incubator { get; set; }
     }
 }

@@ -8,17 +8,24 @@ namespace IncuSmart.API.Requests
 {
     public class CreateIncubatorModelRequest
     {
-        [Required(ErrorMessage = "ModelCode is required")]
-        [MaxLength(50, ErrorMessage = "ModelCode must be at most 50 characters")]
+        [Required(ErrorMessage = CommonConst.ModelCodeRequired)]
+        [MinLength(2, ErrorMessage = CommonConst.ModelCodeMinLength)]
+        [MaxLength(50, ErrorMessage = CommonConst.ModelCodeMaxLength)]
         public string? ModelCode { get; set; }
 
-        [Required(ErrorMessage = "Name is required")]
-        [MaxLength(100, ErrorMessage = "Name must be at most 100 characters")]
+        [Required(ErrorMessage = CommonConst.NameRequired)]
+        [MinLength(2, ErrorMessage = CommonConst.NameMinLength)]
+        [MaxLength(100, ErrorMessage = CommonConst.NameMaxLength)]
         public string? Name { get; set; }
 
-        [MaxLength(255, ErrorMessage = "Description must be at most 255 characters")]
+        [MaxLength(255, ErrorMessage = CommonConst.DescriptionMaxLength255)]
         public string? Description { get; set; }
 
+        [Required(ErrorMessage = CommonConst.UnitPriceRequired)]
+        [Range(1, long.MaxValue, ErrorMessage = CommonConst.UnitPriceMustBeGreaterThanZero)]
+        public long UnitPrice { get; set; }
+
+        [Required(ErrorMessage = CommonConst.ConfigsRequired)]
         public List<ModelConfigItem> Configs { get; set; } = [];
     }
 

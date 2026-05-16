@@ -3,9 +3,8 @@
 namespace IncuSmart.Infra.Persistences.Entities
 {
     [Table("incubators")]
-    public class IncubatorEntity : BaseEntity<BaseStatus>
+    public class IncubatorEntity : BaseEntity<IncubatorStatus>
     {
-        public string QrCode { get; set; } = string.Empty;
         public Guid ModelId { get; set; }
         public Guid? CustomerId { get; set; }
         public DateTime? ActivatedAt { get; set; }

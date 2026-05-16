@@ -1,4 +1,4 @@
-﻿using IncuSmart.Core.Enums;
+using IncuSmart.Core.Enums;
 
 namespace IncuSmart.Core.Usecases
 {
@@ -22,23 +22,42 @@ namespace IncuSmart.Core.Usecases
                             command.Username
                     );
 
-            if (user == null) return ResultModelUtils.FillResult<string?>("404", "Wrong username or password", null);
+            if (user == null) return ResultModelUtils.FillResult<string?>("404", CommonConst.WrongUsernameOrPassword, null);
+
+            if (user.Status != BaseStatus.ACTIVE)
+                return ResultModelUtils.FillResult<string?>("403", CommonConst.UserAccountInactive, null);
 
             bool isPasswordValid = PasswordUtil.VerifyPassword(command.Password, user.PasswordHash);
 
-            return isPasswordValid 
-                ? ResultModelUtils.FillResult<string?>("200", "Login successfully", JwtUtil.GenerateToken(user)) 
-                : ResultModelUtils.FillResult<string?>("404", "Wrong username or password", null);
+            return isPasswordValid
+                ? ResultModelUtils.FillResult<string?>("200", CommonConst.LoginSuccessfully, JwtUtil.GenerateToken(user))
+                : ResultModelUtils.FillResult<string?>("404", CommonConst.WrongUsernameOrPassword, null);
         }
 
         public async Task<ResultModel<string?>> Register(RegisterCommand command)
         {
+            command.Username = command.Username.Trim();
+            command.FullName = command.FullName.Trim();
+            command.Phone = command.Phone.Trim();
+            command.Email = string.IsNullOrWhiteSpace(command.Email) ? null : command.Email.Trim();
+
             User? user = await _userRepository
                         .FindByUserNameAndDeletedAtIsNull(
                             command.Username
                     );
 
-            if (user != null) return ResultModelUtils.FillResult<string?>("404", "Username is existed", null);
+            if (user != null) return ResultModelUtils.FillResult<string?>("404", CommonConst.UsernameIsExisted, null);
+
+            if (!string.IsNullOrWhiteSpace(command.Email))
+            {
+                var existingEmail = await _userRepository.FindByEmailAndDeletedAtIsNull(command.Email);
+                if (existingEmail != null)
+                    return ResultModelUtils.FillResult<string?>("409", CommonConst.EmailAlreadyExists, null);
+            }
+
+            var existingPhone = await _userRepository.FindByPhoneAndDeletedAtIsNull(command.Phone);
+            if (existingPhone != null)
+                return ResultModelUtils.FillResult<string?>("409", CommonConst.PhoneAlreadyExists, null);
 
             await _unitOfWork.BeginAsync();
             try
@@ -55,7 +74,7 @@ namespace IncuSmart.Core.Usecases
                     Phone = command.Phone,
                     Status = BaseStatus.ACTIVE,
                     Role = UserRole.CUSTOMER,
-                    CreatedBy = "SYSTEM",
+                    CreatedBy = CommonConst.SystemActor,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -64,21 +83,22 @@ namespace IncuSmart.Core.Usecases
 
                 Customer newCustomer = new()
                 {
+                    Id = Guid.NewGuid(),
                     Status = BaseStatus.ACTIVE,
                     UserId = userId,
-                    CreatedBy = "SYSTEM",
+                    CreatedBy = CommonConst.SystemActor,
                     CreatedAt = DateTime.UtcNow
                 };
 
                 await _customerRepository.Add(newCustomer);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
-                return ResultModelUtils.FillResult<string?>("200", "Register successfully", null);
+                return ResultModelUtils.FillResult<string?>("200", CommonConst.RegisterSuccessfully, null);
             }
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackAsync();
-                return ResultModelUtils.FillResult<string?>("500", ex.Message, null); 
+                return ResultModelUtils.FillResult<string?>("500", ex.Message, null);
             }
         }
     }

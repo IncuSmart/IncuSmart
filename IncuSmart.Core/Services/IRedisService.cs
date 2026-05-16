@@ -12,5 +12,5 @@ namespace IncuSmart.Core.Services
         Task<string?> GetAsync(string key);
         Task DeleteAsync(string key);
     }
-
 }
+    
