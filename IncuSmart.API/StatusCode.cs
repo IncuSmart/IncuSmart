@@ -5,6 +5,7 @@
         SUCCESS,
         NOT_FOUND,
         CONFLICT,
-        BAD_REQUEST
+        BAD_REQUEST,
+        FORBIDDEN
     }
 }
