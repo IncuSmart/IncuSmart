@@ -9,8 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
-appsettings.json
-appsettings.Development.json
+appsettings*.json
 
 # Visual Studio
 .vs/
