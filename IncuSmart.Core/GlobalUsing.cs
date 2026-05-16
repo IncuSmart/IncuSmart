@@ -1,8 +1,10 @@
 ﻿global using IncuSmart.Core.Commands;
 global using IncuSmart.Core.Domain;
+global using IncuSmart.Core.Common;
 global using IncuSmart.Core.Domains.Base;
 global using IncuSmart.Core.Ports.Inbound;
 global using IncuSmart.Core.Ports.Outbound;
+global using IncuSmart.Core.Responses;
 global using IncuSmart.Core.Utils;
 global using Microsoft.IdentityModel.Tokens;
 global using System.IdentityModel.Tokens.Jwt;
