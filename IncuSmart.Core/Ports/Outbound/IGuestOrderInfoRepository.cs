@@ -9,5 +9,7 @@ namespace IncuSmart.Core.Ports.Outbound
     public interface IGuestOrderInfoRepository
     {
         Task Add(GuestOrderInfo guestOrderInfo);
+        Task<GuestOrderInfo?> FindByOrderId(Guid orderId);
+        Task Update(GuestOrderInfo guestOrderInfo);
     }
 }

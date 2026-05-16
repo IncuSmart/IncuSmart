@@ -5,7 +5,7 @@ namespace IncuSmart.API.Requests
     public class CreateOrderByCustomerRequest
     {
         [Required]
-        [MinLength(1, ErrorMessage = "At least one item is required")]
+        [MinLength(1, ErrorMessage = CommonConst.AtLeastOneItemRequired)]
         public List<OrderItemRequest> Items { get; set; } = [];
 
         [JsonIgnore]

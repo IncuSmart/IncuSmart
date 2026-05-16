@@ -20,5 +20,23 @@ namespace IncuSmart.Infra.Persistences.Repositories
             GuestOrderInfoEntity entity = guestOrderInfo.Adapt<GuestOrderInfoEntity>();
             await _dbContext.AddAsync(entity);
         }
+
+        public async Task<GuestOrderInfo?> FindByOrderId(Guid orderId)
+        {
+            var entity = await _dbContext.GuestOrderInfos
+                .FirstOrDefaultAsync(x => x.OrderId == orderId && x.DeletedAt == null);
+            return entity?.Adapt<GuestOrderInfo>();
+        }
+
+        public async Task Update(GuestOrderInfo guestOrderInfo)
+        {
+            var entity = await _dbContext.GuestOrderInfos
+                .FirstOrDefaultAsync(x => x.Id == guestOrderInfo.Id && x.DeletedAt == null);
+
+            if (entity != null)
+            {
+                guestOrderInfo.Adapt(entity);
+            }
+        }
     }
 }
