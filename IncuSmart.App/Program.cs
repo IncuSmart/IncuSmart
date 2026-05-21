@@ -130,12 +130,9 @@ if (builder.Configuration.GetValue<bool>("Database:RunCodeFirst"))
 
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
-app.UseAuthorization();
-
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
