@@ -114,6 +114,14 @@ builder.Services
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "")
             )
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                return Task.CompletedTask;
+            }
+        };
     });
 
 
