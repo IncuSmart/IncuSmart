@@ -8,6 +8,9 @@ namespace IncuSmart.Infra.Persistences.Repositories
         public async Task Add(Incubator incubator) =>
             await _dbContext.Incubators.AddAsync(incubator.Adapt<IncubatorEntity>());
 
+        public async Task<bool> ExistsBySerialNumber(string serialNumber) =>
+            await _dbContext.Incubators.AnyAsync(x => x.SerialNumber == serialNumber);
+
         public async Task<Incubator?> FindById(Guid id)
         {
             var entity = await _dbContext.Incubators
@@ -57,6 +60,7 @@ namespace IncuSmart.Infra.Persistences.Repositories
                     Id = incubator.Id,
                     ModelId = incubator.ModelId,
                     ModelName = model != null ? model.Name : null,
+                    SerialNumber = incubator.SerialNumber,
                     CustomerId = incubator.CustomerId,
                     ActivatedAt = incubator.ActivatedAt,
                     Status = incubator.Status,

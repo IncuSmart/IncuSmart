@@ -14,6 +14,7 @@ namespace IncuSmart.Core.Responses
         public Guid Id { get; set; }
         public Guid ModelId { get; set; }
         public string? ModelName { get; set; }
+        public string? SerialNumber { get; set; }
         public Guid? CustomerId { get; set; }
         public DateTime? ActivatedAt { get; set; }
         public IncubatorStatus Status { get; set; }

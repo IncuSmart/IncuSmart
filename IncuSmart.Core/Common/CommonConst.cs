@@ -63,6 +63,7 @@ namespace IncuSmart.Core.Common
         public const string OrderAlreadyPaid = "Đơn hàng đã được thanh toán";
         public const string PaymentLinkCreationNotSupportedForCompletedOrder = "Không thể tạo link thanh toán cho đơn đã hoàn tất hoặc đã hủy";
         public const string PaymentLinkMissingConfiguration = "Thiếu cấu hình thanh toán payOS";
+        public const string OrderAmountExceedsPaymentGatewayLimit = "Tổng đơn hàng vượt quá giới hạn của cổng thanh toán";
         public const string PaymentWebhookInvalid = "Webhook thanh toán không hợp lệ";
         public const string PaymentOrderNotFound = "Không tìm thấy đơn hàng tương ứng với giao dịch thanh toán";
         public const string OrderItemAlreadyAssigned = "Mặt hàng trong đơn đã được gán";

@@ -691,7 +691,8 @@ namespace IncuSmart.Core.Usecases
 
         private static string BuildPaymentDescription(string? orderCode)
         {
-            return $"Thanh toan {orderCode ?? CommonConst.SalesOrderCodePrefix}";
+            var desc = $"Thanh toan {orderCode ?? CommonConst.SalesOrderCodePrefix}";
+            return desc.Length > 25 ? desc[..25] : desc;
         }
 
         private static string GenerateOrderCode()

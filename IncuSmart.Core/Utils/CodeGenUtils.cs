@@ -47,6 +47,16 @@ namespace IncuSmart.Core.Utils
 
         public static string GenerateSeasonCode() =>
             "HS-" + DateTime.UtcNow.ToString("yyyyMMdd") + "-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+
+        // Bỏ các ký tự dễ nhầm: 0/O, I/L
+        private const string SafeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+        public static string GenerateSecureCode(int length = 6)
+        {
+            var buffer = new byte[length];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(buffer);
+            return string.Concat(buffer.Select(b => SafeAlphabet[b % SafeAlphabet.Length]));
+        }
     }
 
 }
