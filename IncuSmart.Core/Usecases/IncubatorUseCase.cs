@@ -54,10 +54,15 @@ namespace IncuSmart.Core.Usecases
                     var incubatorId = Guid.NewGuid();
                     incubatorIds.Add(incubatorId);
 
+                    string serialNumber;
+                    do { serialNumber = $"{model.ModelCode}-{CodeGenUtils.GenerateSecureCode(6)}"; }
+                    while (await _incubatorRepository.ExistsBySerialNumber(serialNumber));
+
                     var incubator = new Incubator
                     {
                         Id = incubatorId,
                         ModelId = command.ModelId,
+                        SerialNumber = serialNumber,
                         CustomerId = null,
                         ActivatedAt = null,
                         Status = IncubatorStatus.AVAILABLE,

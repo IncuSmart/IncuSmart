@@ -3,6 +3,7 @@
     public interface IIncubatorRepository
     {
         Task Add(Incubator incubator);
+        Task<bool> ExistsBySerialNumber(string serialNumber);
         Task<Incubator?> FindById(Guid id);
         Task<IncubatorResponse?> FindDetailById(Guid id);
         Task<List<IncubatorResponse>> List(Guid? customerId, string? status, Guid? modelId);

@@ -32,7 +32,9 @@ namespace IncuSmart.Infra.Services
             var paymentRequest = new CreatePaymentLinkRequest
             {
                 OrderCode = request.OrderCode,
-                Amount = checked((int)request.Amount),
+                Amount = request.Amount > int.MaxValue
+                    ? throw new InvalidOperationException(CommonConst.OrderAmountExceedsPaymentGatewayLimit)
+                    : (int)request.Amount,
                 Description = request.Description,
                 ReturnUrl = _options.ReturnUrl,
                 CancelUrl = _options.CancelUrl,
