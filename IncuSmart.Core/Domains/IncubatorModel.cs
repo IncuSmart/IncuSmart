@@ -11,7 +11,8 @@ namespace IncuSmart.Core.Domains
         public string ModelCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public long UnitPrice { get; set; }
+        public long    UnitPrice { get; set; }
+        public string? ImageUrl  { get; set; }
     }
 
 }

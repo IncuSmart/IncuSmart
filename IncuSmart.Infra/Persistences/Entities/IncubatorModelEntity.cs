@@ -11,6 +11,7 @@ namespace IncuSmart.Infra.Persistences.Entities
 
         public string? Description { get; set; }
 
-        public long UnitPrice { get; set; }
+        public long    UnitPrice { get; set; }
+        public string? ImageUrl  { get; set; }
     }
 }

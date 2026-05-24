@@ -384,6 +384,15 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<Guid?>("400", CommonConst.DescriptionRequired, null);
             }
 
+            // Chỉ gán PerformedByUserId nếu user thực sự tồn tại trong DB
+            // (admin hardcoded dùng ID giả, không có trong bảng users)
+            Guid? performedByUserId = null;
+            if (currentUserId.HasValue && currentUserId.Value != Guid.Empty)
+            {
+                var performer = await _userRepository.FindById(currentUserId.Value);
+                if (performer != null) performedByUserId = currentUserId;
+            }
+
             await _unitOfWork.BeginAsync();
             try
             {
@@ -391,7 +400,7 @@ namespace IncuSmart.Core.Usecases
                 {
                     Id = Guid.NewGuid(),
                     TicketId = command.TicketId,
-                    PerformedByUserId = currentUserId,
+                    PerformedByUserId = performedByUserId,
                     Description = command.Description.Trim(),
                     Status = BaseStatus.ACTIVE,
                     CreatedAt = DateTime.UtcNow,
