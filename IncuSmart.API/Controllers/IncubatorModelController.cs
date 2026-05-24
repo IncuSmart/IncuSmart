@@ -20,6 +20,14 @@ namespace IncuSmart.API.Controllers
                 AuditEntityType.INCUBATOR_MODEL);
         }
 
+        [AllowAnonymous]
+        [HttpGet("public")]
+        public async Task<IActionResult> ListPublic([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 12)
+        {
+            var result = await _modelUseCase.List("ACTIVE", search, page, pageSize);
+            return FromResult(new BaseResponse<PagedResult<IncubatorModel>> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+        }
+
         [Authorize(Roles = "ADMIN,SALES_STAFF,TECHNICIAN,CUSTOMER")]
         [HttpGet]
         public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
