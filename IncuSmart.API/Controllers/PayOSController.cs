@@ -40,7 +40,7 @@ namespace IncuSmart.API.Controllers
                     }
                 });
 
-                var result = await _orderUseCase.HandlePaymentWebhook(new HandleOrderPaymentWebhookCommand
+                await _orderUseCase.HandlePaymentWebhook(new HandleOrderPaymentWebhookCommand
                 {
                     PaymentOrderCode = verified.OrderCode,
                     Amount = verified.Amount,
@@ -52,21 +52,11 @@ namespace IncuSmart.API.Controllers
                     Success = verified.Success
                 });
 
-                return FromResult(new BaseResponse<bool>
-                {
-                    StatusCode = result.StatusCode,
-                    Message = result.Message,
-                    Data = result.Data
-                });
+                return Ok(new BaseResponse<bool> { StatusCode = "200", Message = CommonConst.Success, Data = true });
             }
             catch (Exception)
             {
-                return FromResult(new BaseResponse<bool>
-                {
-                    StatusCode = "400",
-                    Message = CommonConst.PaymentWebhookInvalid,
-                    Data = false
-                });
+                return Ok(new BaseResponse<bool> { StatusCode = "200", Message = CommonConst.Success, Data = false });
             }
         }
 
