@@ -95,17 +95,19 @@ namespace IncuSmart.Infra.Services
                 }
             };
 
-            var verified = await _client.Webhooks.VerifyAsync(webhook);
+            var expectedSig = _client.Crypto.CreateSignatureFromObject(webhook.Data, _options.ChecksumKey);
+            if (!string.Equals(expectedSig, request.Signature, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(CommonConst.PaymentWebhookInvalid);
 
             return new PaymentWebhookResult
             {
-                OrderCode = verified.OrderCode,
-                Amount = verified.Amount,
-                PaymentLinkId = verified.PaymentLinkId,
-                Reference = verified.Reference,
-                TransactionDateTime = verified.TransactionDateTime,
-                Code = verified.Code,
-                Description = verified.Description2,
+                OrderCode = webhook.Data.OrderCode,
+                Amount = webhook.Data.Amount,
+                PaymentLinkId = webhook.Data.PaymentLinkId,
+                Reference = webhook.Data.Reference,
+                TransactionDateTime = webhook.Data.TransactionDateTime,
+                Code = webhook.Data.Code,
+                Description = webhook.Data.Description2,
                 Success = request.Success
             };
         }
