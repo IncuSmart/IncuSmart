@@ -66,46 +66,43 @@ namespace IncuSmart.Infra.Services
             await _client.Webhooks.ConfirmAsync(webhookUrl);
         }
 
-        public async Task<PaymentWebhookResult> VerifyWebhook(PaymentWebhookRequest request)
+        public Task<PaymentWebhookResult> VerifyWebhook(PaymentWebhookRequest request)
         {
-            var verifiedData = await _client.Webhooks.VerifyAsync(new Webhook
+            var webhookData = new WebhookData
             {
-                Code = request.Code,
-                Description = request.Description,
-                Success = request.Success,
-                Signature = request.Signature,
-                Data = new WebhookData
-                {
-                    OrderCode = request.Data.OrderCode,
-                    Amount = checked((int)request.Data.Amount),
-                    Description = request.Data.Description ?? string.Empty,
-                    AccountNumber = request.Data.AccountNumber ?? string.Empty,
-                    Reference = request.Data.Reference ?? string.Empty,
-                    TransactionDateTime = request.Data.TransactionDateTime ?? string.Empty,
-                    Currency = request.Data.Currency ?? string.Empty,
-                    PaymentLinkId = request.Data.PaymentLinkId ?? string.Empty,
-                    Code = request.Data.Code ?? string.Empty,
-                    Description2 = request.Data.Description2 ?? string.Empty,
-                    CounterAccountBankId = request.Data.CounterAccountBankId ?? string.Empty,
-                    CounterAccountBankName = request.Data.CounterAccountBankName ?? string.Empty,
-                    CounterAccountName = request.Data.CounterAccountName ?? string.Empty,
-                    CounterAccountNumber = request.Data.CounterAccountNumber ?? string.Empty,
-                    VirtualAccountName = request.Data.VirtualAccountName ?? string.Empty,
-                    VirtualAccountNumber = request.Data.VirtualAccountNumber ?? string.Empty
-                }
-            });
-
-            return new PaymentWebhookResult
-            {
-                OrderCode = verifiedData.OrderCode,
-                Amount = verifiedData.Amount,
-                PaymentLinkId = verifiedData.PaymentLinkId,
-                Reference = verifiedData.Reference,
-                TransactionDateTime = verifiedData.TransactionDateTime,
-                Code = verifiedData.Code,
-                Description = verifiedData.Description2,
-                Success = request.Success
+                OrderCode = request.Data.OrderCode,
+                Amount = checked((int)request.Data.Amount),
+                Description = request.Data.Description ?? string.Empty,
+                AccountNumber = request.Data.AccountNumber ?? string.Empty,
+                Reference = request.Data.Reference ?? string.Empty,
+                TransactionDateTime = request.Data.TransactionDateTime ?? string.Empty,
+                Currency = request.Data.Currency ?? string.Empty,
+                PaymentLinkId = request.Data.PaymentLinkId ?? string.Empty,
+                Code = request.Data.Code ?? string.Empty,
+                Description2 = request.Data.Description2 ?? string.Empty,
+                CounterAccountBankId = request.Data.CounterAccountBankId ?? string.Empty,
+                CounterAccountBankName = request.Data.CounterAccountBankName ?? string.Empty,
+                CounterAccountName = request.Data.CounterAccountName ?? string.Empty,
+                CounterAccountNumber = request.Data.CounterAccountNumber ?? string.Empty,
+                VirtualAccountName = request.Data.VirtualAccountName ?? string.Empty,
+                VirtualAccountNumber = request.Data.VirtualAccountNumber ?? string.Empty
             };
+
+            var expectedSignature = _client.Crypto.CreateSignatureFromObject(webhookData, _options.ChecksumKey);
+            if (!string.Equals(expectedSignature, request.Signature, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(CommonConst.PaymentWebhookInvalid);
+
+            return Task.FromResult(new PaymentWebhookResult
+            {
+                OrderCode = webhookData.OrderCode,
+                Amount = webhookData.Amount,
+                PaymentLinkId = webhookData.PaymentLinkId,
+                Reference = webhookData.Reference,
+                TransactionDateTime = webhookData.TransactionDateTime,
+                Code = webhookData.Code,
+                Description = webhookData.Description2,
+                Success = request.Success
+            });
         }
     }
 }
