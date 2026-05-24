@@ -69,6 +69,8 @@
         services.AddScoped<IMaintenanceLogRepository, MaintenanceLogRepository>();
 
         services.AddScoped<IPaymentGatewayService, PayOSPaymentGatewayService>();
+        services.AddScoped<ICloudinaryService, CloudinaryService>();
+        services.Configure<CloudinaryOptions>(config.GetSection(CloudinaryOptions.SectionName));
 
         // Inject utils
         services.AddSingleton<IRedisService, RedisService>();

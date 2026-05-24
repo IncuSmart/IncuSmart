@@ -21,7 +21,8 @@ namespace IncuSmart.API.Requests
         [Range(1, long.MaxValue, ErrorMessage = CommonConst.UnitPriceMustBeGreaterThanZero)]
         public long? UnitPrice { get; set; }
 
-        public List<ModelConfigItem>? Configs { get; set; }
+        public List<ModelConfigItem>? Configs  { get; set; }
+        public string?                ImageUrl { get; set; }
     }
 
 }

@@ -5,6 +5,7 @@ namespace IncuSmart.Core.Usecases
         private readonly IWarrantyRepository _warrantyRepository;
         private readonly IIncubatorRepository _incubatorRepository;
         private readonly ICustomerRepository _customerRepository;
+        private readonly IMaintenanceTicketRepository _ticketRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<WarrantyUseCase> _logger;
 
@@ -12,12 +13,14 @@ namespace IncuSmart.Core.Usecases
             IWarrantyRepository warrantyRepository,
             IIncubatorRepository incubatorRepository,
             ICustomerRepository customerRepository,
+            IMaintenanceTicketRepository ticketRepository,
             IUnitOfWork unitOfWork,
             ILogger<WarrantyUseCase> logger)
         {
             _warrantyRepository = warrantyRepository;
             _incubatorRepository = incubatorRepository;
             _customerRepository = customerRepository;
+            _ticketRepository = ticketRepository;
             _unitOfWork = unitOfWork;
             _logger = logger;
         }
@@ -38,7 +41,48 @@ namespace IncuSmart.Core.Usecases
             var existingWarranty = await _warrantyRepository.FindByIncubatorId(command.IncubatorId);
             if (existingWarranty != null)
             {
-                return ResultModelUtils.FillResult<Guid?>("409", CommonConst.WarrantyAlreadyExistsForIncubator, null);
+                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+                // Điều kiện 1: bảo hành đã hết hạn (có EndDate và EndDate < hôm nay) hoặc bị vô hiệu
+                bool isExpiredOrInactive = existingWarranty.Status != BaseStatus.ACTIVE
+                    || (existingWarranty.EndDate.HasValue && existingWarranty.EndDate.Value < today);
+
+                // Điều kiện 2: tất cả ticket bảo trì của bảo hành này đã đóng
+                bool allTicketsClosed = false;
+                if (!isExpiredOrInactive)
+                {
+                    var tickets = await _ticketRepository.List(command.IncubatorId, null, null, null);
+                    var warrantyTickets = tickets.Where(t => t.WarrantyId == existingWarranty.Id).ToList();
+                    allTicketsClosed = warrantyTickets.Count == 0 || warrantyTickets.All(t =>
+                        t.Status == MaintenanceTicketStatus.CLOSED ||
+                        t.Status == MaintenanceTicketStatus.RESOLVED ||
+                        t.Status == MaintenanceTicketStatus.REJECTED ||
+                        t.Status == MaintenanceTicketStatus.CANCELLED);
+                }
+
+                if (!isExpiredOrInactive && !allTicketsClosed)
+                    return ResultModelUtils.FillResult<Guid?>("409", CommonConst.WarrantyAlreadyExistsForIncubator, null);
+
+                // Gia hạn: cập nhật lại warranty cũ thay vì tạo mới (tránh unique constraint DB)
+                await _unitOfWork.BeginAsync();
+                try
+                {
+                    existingWarranty.StartDate = command.StartDate;
+                    existingWarranty.EndDate = command.EndDate;
+                    existingWarranty.Notes = string.IsNullOrWhiteSpace(command.Notes) ? null : command.Notes.Trim();
+                    existingWarranty.Status = BaseStatus.ACTIVE;
+                    existingWarranty.UpdatedAt = DateTime.UtcNow;
+                    existingWarranty.UpdatedBy = CommonConst.SystemActor;
+                    await _warrantyRepository.Update(existingWarranty);
+                    await _unitOfWork.CommitAsync();
+                    return ResultModelUtils.FillResult<Guid?>("200", CommonConst.CreateWarrantySuccessfully, existingWarranty.Id);
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    _logger.LogError(ex, "Error renewing warranty");
+                    return ResultModelUtils.FillResult<Guid?>("500", ex.Message, null);
+                }
             }
 
             await _unitOfWork.BeginAsync();

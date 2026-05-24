@@ -53,6 +53,7 @@ namespace IncuSmart.Core.Usecases
                     Name = command.Name,
                     Description = command.Description,
                     UnitPrice = command.UnitPrice,
+                    ImageUrl = command.ImageUrl,
                     Status = BaseStatus.ACTIVE,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = CommonConst.SystemActor
@@ -140,6 +141,7 @@ namespace IncuSmart.Core.Usecases
                 model.Name = nextName;
                 model.Description = nextDescription;
                 model.UnitPrice = nextUnitPrice;
+                model.ImageUrl = command.ImageUrl ?? model.ImageUrl;
                 model.UpdatedAt = DateTime.UtcNow;
                 model.UpdatedBy = CommonConst.SystemActor;
                 await _modelRepository.Update(model);

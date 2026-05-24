@@ -13,7 +13,8 @@ namespace IncuSmart.Core.Commands
         public string? Name { get; set; }
         public string? Description { get; set; }
         public long? UnitPrice { get; set; }
-        public List<ModelConfigItemCommand>? Configs { get; set; }
+        public List<ModelConfigItemCommand>? Configs  { get; set; }
+        public string?                        ImageUrl { get; set; }
     }
 
 }

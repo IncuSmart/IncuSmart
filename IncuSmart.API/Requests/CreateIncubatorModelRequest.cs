@@ -26,7 +26,8 @@ namespace IncuSmart.API.Requests
         public long UnitPrice { get; set; }
 
         [Required(ErrorMessage = CommonConst.ConfigsRequired)]
-        public List<ModelConfigItem> Configs { get; set; } = [];
+        public List<ModelConfigItem> Configs  { get; set; } = [];
+        public string?               ImageUrl { get; set; }
     }
 
 }

@@ -5,7 +5,8 @@
         public void Register(TypeAdapterConfig config)
         {
             config.NewConfig<IncubatorEntity, Incubator>();
-            config.NewConfig<Incubator, IncubatorEntity>();
+            config.NewConfig<Incubator, IncubatorEntity>()
+                .Map(dest => dest.SerialNumber, src => src.SerialNumber);
         }
     }
 }
