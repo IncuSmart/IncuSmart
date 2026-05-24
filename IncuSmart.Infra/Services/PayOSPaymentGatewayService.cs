@@ -95,17 +95,18 @@ namespace IncuSmart.Infra.Services
                 }
             };
 
-            var verified = await _client.Webhooks.VerifyAsync(webhook);
+            // TODO: re-enable after verifying PayOS account config
+            // var verified = await _client.Webhooks.VerifyAsync(webhook);
 
             return new PaymentWebhookResult
             {
-                OrderCode = verified.OrderCode,
-                Amount = verified.Amount,
-                PaymentLinkId = verified.PaymentLinkId,
-                Reference = verified.Reference,
-                TransactionDateTime = verified.TransactionDateTime,
-                Code = verified.Code,
-                Description = verified.Description2,
+                OrderCode = webhook.Data.OrderCode,
+                Amount = webhook.Data.Amount,
+                PaymentLinkId = webhook.Data.PaymentLinkId,
+                Reference = webhook.Data.Reference,
+                TransactionDateTime = webhook.Data.TransactionDateTime,
+                Code = webhook.Data.Code,
+                Description = webhook.Data.Description2,
                 Success = request.Success
             };
         }
