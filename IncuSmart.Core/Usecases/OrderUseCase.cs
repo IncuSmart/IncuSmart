@@ -81,6 +81,8 @@ namespace IncuSmart.Core.Usecases
             try
             {
                 await _salesOrderRepository.Add(salesOrder);
+                await _unitOfWork.SaveChangesAsync();   // flush order trước để FK hợp lệ
+
                 await _salesOrderItemRepository.AddRange(preparedOrder.OrderItems.Select(x =>
                 {
                     x.OrderId = salesOrderId;
@@ -146,6 +148,7 @@ namespace IncuSmart.Core.Usecases
             try
             {
                 await _salesOrderRepository.Add(salesOrder);
+                await _unitOfWork.SaveChangesAsync();   // flush order trước để FK hợp lệ
 
                 var guestOrderInfo = new GuestOrderInfo
                 {
@@ -231,6 +234,8 @@ namespace IncuSmart.Core.Usecases
             try
             {
                 await _salesOrderRepository.Add(salesOrder);
+                await _unitOfWork.SaveChangesAsync();   // flush order trước để FK hợp lệ
+
                 await _salesOrderItemRepository.AddRange(preparedOrder.OrderItems.Select(x =>
                 {
                     x.OrderId = salesOrderId;
@@ -260,8 +265,7 @@ namespace IncuSmart.Core.Usecases
             {
                 await _unitOfWork.RollbackAsync();
                 _logger.LogError(e, "Error creating sales order for customer {CustomerId}", command.CustomerId);
-                var detail = e.InnerException?.Message ?? e.Message;
-                return ResultModelUtils.FillResult<CreateOrderResponse?>("500", $"{e.Message} | {detail}", null);
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("500", e.Message, null);
             }
         }
 
