@@ -101,12 +101,14 @@ namespace IncuSmart.Infra.Services
             var data = root.GetProperty("data");
             var paymentLinkId = data.GetProperty("paymentLinkId").GetString()!;
             var checkoutUrl   = data.GetProperty("checkoutUrl").GetString()!;
+            var qrCode        = data.TryGetProperty("qrCode", out var qr) ? qr.GetString() : null;
 
             return new PaymentLinkResult
             {
                 OrderCode     = request.OrderCode,
                 PaymentLinkId = paymentLinkId,
                 CheckoutUrl   = checkoutUrl,
+                QrCode        = qrCode,
                 ExpiredAt     = expiredAt.UtcDateTime
             };
         }

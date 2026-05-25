@@ -20,6 +20,8 @@
 
         public string? CheckoutUrl { get; set; }
 
+        public string? QrCode { get; set; }
+
         public DateTime? PaymentLinkCreatedAt { get; set; }
 
         public DateTime? PaymentLinkExpiredAt { get; set; }

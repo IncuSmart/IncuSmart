@@ -743,6 +743,7 @@ namespace IncuSmart.Core.Usecases
         {
             salesOrder.PaymentLinkId = paymentLink.PaymentLinkId;
             salesOrder.CheckoutUrl = paymentLink.CheckoutUrl;
+            salesOrder.QrCode = paymentLink.QrCode;
             salesOrder.PaymentLinkCreatedAt = DateTime.UtcNow;
             salesOrder.PaymentLinkExpiredAt = paymentLink.ExpiredAt;
             salesOrder.UpdatedAt = DateTime.UtcNow;
@@ -759,7 +760,9 @@ namespace IncuSmart.Core.Usecases
                 PaymentStatus = order.PaymentStatus,
                 PaymentOrderCode = order.PaymentOrderCode,
                 PaymentLinkId = order.PaymentLinkId,
-                CheckoutUrl = order.CheckoutUrl
+                CheckoutUrl = order.CheckoutUrl,
+                QrCode = order.QrCode,
+                PaymentLinkExpiredAt = order.PaymentLinkExpiredAt
             };
         }
 

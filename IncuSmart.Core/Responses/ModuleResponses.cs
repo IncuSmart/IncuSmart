@@ -66,6 +66,8 @@ namespace IncuSmart.Core.Responses
         public long? PaymentOrderCode { get; set; }
         public string? PaymentLinkId { get; set; }
         public string? CheckoutUrl { get; set; }
+        public string? QrCode { get; set; }
+        public DateTime? PaymentLinkExpiredAt { get; set; }
     }
 
     public class MaintenanceTicketDetailResponse

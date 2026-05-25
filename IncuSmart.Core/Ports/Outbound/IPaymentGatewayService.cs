@@ -31,6 +31,7 @@ namespace IncuSmart.Core.Ports.Outbound
         public long OrderCode { get; set; }
         public string? PaymentLinkId { get; set; }
         public string? CheckoutUrl { get; set; }
+        public string? QrCode { get; set; }
         public DateTime? ExpiredAt { get; set; }
     }
 
