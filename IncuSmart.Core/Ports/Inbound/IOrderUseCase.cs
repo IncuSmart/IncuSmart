@@ -4,6 +4,7 @@
     {
         Task<ResultModel<CreateOrderResponse?>> CreateOrderByCustomer(CreateOrderByCustomerCommand command);
         Task<ResultModel<CreateOrderResponse?>> CreateOrderByGuest(CreateOrderByGuestCommand command);
+        Task<ResultModel<CreateOrderResponse?>> CreateOrderBySales(CreateOrderBySalesCommand command);
         Task<ResultModel<bool>> AssignIncubatorToOrderItem(AssignIncubatorToOrderItemCommand command);
         Task<ResultModel<bool>> CompleteOrder(CompleteOrderCommand command);
         Task<ResultModel<bool>> ClaimGuestOrder(ClaimGuestOrderCommand command);
