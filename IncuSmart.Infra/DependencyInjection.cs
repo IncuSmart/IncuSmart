@@ -70,7 +70,8 @@
 
         services.AddScoped<IPaymentGatewayService, PayOSPaymentGatewayService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
-        services.Configure<CloudinaryOptions>(config.GetSection(CloudinaryOptions.SectionName));
+        services.Configure<CloudinaryOptions>(options =>
+            config.GetSection(CloudinaryOptions.SectionName).Bind(options));
 
         // Inject utils
         services.AddSingleton<IRedisService, RedisService>();
