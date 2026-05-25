@@ -742,7 +742,6 @@ namespace IncuSmart.Core.Usecases
         private static void ApplyPaymentLink(SalesOrder salesOrder, PaymentLinkResult paymentLink, string actor)
         {
             salesOrder.PaymentLinkId = paymentLink.PaymentLinkId;
-            salesOrder.CheckoutUrl = paymentLink.CheckoutUrl;
             salesOrder.QrCode = paymentLink.QrCode;
             salesOrder.PaymentLinkCreatedAt = DateTime.UtcNow;
             salesOrder.PaymentLinkExpiredAt = paymentLink.ExpiredAt;
@@ -760,7 +759,6 @@ namespace IncuSmart.Core.Usecases
                 PaymentStatus = order.PaymentStatus,
                 PaymentOrderCode = order.PaymentOrderCode,
                 PaymentLinkId = order.PaymentLinkId,
-                CheckoutUrl = order.CheckoutUrl,
                 QrCode = order.QrCode,
                 PaymentLinkExpiredAt = order.PaymentLinkExpiredAt
             };
