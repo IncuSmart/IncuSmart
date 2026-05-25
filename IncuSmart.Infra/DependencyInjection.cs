@@ -18,8 +18,8 @@
                 .Get<JwtOptionsDto>()!
             );
 
-        services.Configure<PayOSOptions>(
-            config.GetSection(PayOSOptions.SectionName));
+        services.Configure<PayOSOptions>(options =>
+            config.GetSection(PayOSOptions.SectionName).Bind(options));
 
         // Inject use cases
         services.AddScoped<IAuthUseCase, AuthUseCase>();

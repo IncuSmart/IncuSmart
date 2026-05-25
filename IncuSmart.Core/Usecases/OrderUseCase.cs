@@ -195,6 +195,76 @@ namespace IncuSmart.Core.Usecases
             }
         }
 
+        public async Task<ResultModel<CreateOrderResponse?>> CreateOrderBySales(CreateOrderBySalesCommand command)
+        {
+            var customer = await _customerRepository.FindById(command.CustomerId);
+            if (customer == null)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("404", CommonConst.CustomerNotFound, null);
+
+            var user = await _userRepository.FindById(customer.UserId);
+            if (user == null)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("404", CommonConst.UserNotFound, null);
+
+            var preparedOrder = await PrepareOrderItems(command.Items);
+            if (preparedOrder.Error != null)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>(preparedOrder.Error.StatusCode, preparedOrder.Error.Message, null);
+
+            var paymentOrderCode = GeneratePaymentOrderCode();
+            var salesOrderId = Guid.NewGuid();
+            var actor = command.CreatedByUserId.ToString();
+            var salesOrder = new SalesOrder
+            {
+                Id = salesOrderId,
+                OrderCode = GenerateOrderCode(),
+                CustomerId = customer.Id,
+                OrderDate = DateTime.UtcNow,
+                ShippingAddress = customer.Address ?? string.Empty,
+                TotalAmount = preparedOrder.TotalAmount,
+                PaymentStatus = PaymentStatus.PENDING,
+                PaymentOrderCode = paymentOrderCode,
+                Status = OrderStatus.PENDING,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = actor
+            };
+
+            await _unitOfWork.BeginAsync();
+            try
+            {
+                await _salesOrderRepository.Add(salesOrder);
+                await _salesOrderItemRepository.AddRange(preparedOrder.OrderItems.Select(x =>
+                {
+                    x.OrderId = salesOrderId;
+                    x.CreatedBy = actor;
+                    return x;
+                }).ToList());
+
+                var paymentLink = await _paymentGatewayService.CreatePaymentLink(new PaymentLinkRequest
+                {
+                    OrderCode = paymentOrderCode,
+                    Amount = preparedOrder.TotalAmount,
+                    Description = BuildPaymentDescription(salesOrder.OrderCode),
+                    BuyerName = user.FullName,
+                    BuyerEmail = user.Email,
+                    BuyerPhone = user.Phone,
+                    BuyerAddress = customer.Address,
+                    Items = preparedOrder.PaymentItems
+                });
+
+                ApplyPaymentLink(salesOrder, paymentLink, actor);
+                await _salesOrderRepository.Update(salesOrder);
+
+                await _unitOfWork.CommitAsync();
+                return ResultModelUtils.FillResult("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
+            }
+            catch (Exception e)
+            {
+                await _unitOfWork.RollbackAsync();
+                _logger.LogError(e, "Error creating sales order for customer {CustomerId}", command.CustomerId);
+                var detail = e.InnerException?.Message ?? e.Message;
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("500", $"{e.Message} | {detail}", null);
+            }
+        }
+
         public async Task<ResultModel<bool>> AssignIncubatorToOrderItem(AssignIncubatorToOrderItemCommand command)
         {
             var order = await _salesOrderRepository.FindById(command.OrderId);

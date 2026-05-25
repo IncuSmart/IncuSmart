@@ -6,6 +6,8 @@
         NOT_FOUND,
         CONFLICT,
         BAD_REQUEST,
-        FORBIDDEN
+        FORBIDDEN,
+        UNAUTHORIZED,
+        INTERNAL_SERVER_ERROR
     }
 }

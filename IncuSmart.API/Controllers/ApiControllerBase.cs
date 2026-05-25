@@ -33,6 +33,8 @@
                 API.StatusCode.NOT_FOUND => NotFound(response),
                 API.StatusCode.CONFLICT => Conflict(response),
                 API.StatusCode.FORBIDDEN => StatusCode(StatusCodes.Status403Forbidden, response),
+                API.StatusCode.UNAUTHORIZED => Unauthorized(response),
+                API.StatusCode.INTERNAL_SERVER_ERROR => StatusCode(StatusCodes.Status500InternalServerError, response),
                 API.StatusCode.BAD_REQUEST => BadRequest(response),
                 _ => BadRequest(response)
             };
@@ -46,7 +48,9 @@
                 "404" => API.StatusCode.NOT_FOUND,
                 "409" => API.StatusCode.CONFLICT,
                 "403" => API.StatusCode.FORBIDDEN,
+                "401" => API.StatusCode.UNAUTHORIZED,
                 "400" => API.StatusCode.BAD_REQUEST,
+                "500" => API.StatusCode.INTERNAL_SERVER_ERROR,
                 _ => API.StatusCode.BAD_REQUEST
             };
         }

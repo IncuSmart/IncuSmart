@@ -1,6 +1,10 @@
-using PayOS;
-using PayOS.Models.V2.PaymentRequests;
-using PayOS.Models.Webhooks;
+using Net.payOS;
+using Net.payOS.Types;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CorePayOSOptions = IncuSmart.Core.Utils.PayOSOptions;
 
 namespace IncuSmart.Infra.Services
@@ -9,7 +13,14 @@ namespace IncuSmart.Infra.Services
     {
         private readonly CorePayOSOptions _options;
         private readonly ILogger<PayOSPaymentGatewayService> _logger;
-        private readonly PayOSClient _client;
+        private readonly PayOS _payOS;
+        private static readonly HttpClient _http = new();
+
+        private static readonly JsonSerializerOptions _jsonOpts = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
 
         public PayOSPaymentGatewayService(IOptions<CorePayOSOptions> options, ILogger<PayOSPaymentGatewayService> logger)
         {
@@ -23,93 +34,181 @@ namespace IncuSmart.Infra.Services
                 throw new InvalidOperationException(CommonConst.PaymentLinkMissingConfiguration);
             }
 
-            _client = new PayOSClient(_options.ClientId, _options.ApiKey, _options.ChecksumKey);
+            _payOS = new PayOS(_options.ClientId, _options.ApiKey, _options.ChecksumKey);
         }
 
+        // ──────────────────────────────────────────────────────────────────
+        // CreatePaymentLink — dùng HttpClient trực tiếp (bypass SDK)
+        // Signature spec: HMAC-SHA256 over sorted 5 fields:
+        //   amount, cancelUrl, description, orderCode, returnUrl
+        // ──────────────────────────────────────────────────────────────────
         public async Task<PaymentLinkResult> CreatePaymentLink(PaymentLinkRequest request)
         {
             var expiredAt = DateTimeOffset.UtcNow.AddMinutes(_options.ExpiredAfterMinutes);
-            var paymentRequest = new CreatePaymentLinkRequest
+            var amount = request.Amount > int.MaxValue
+                ? throw new InvalidOperationException(CommonConst.OrderAmountExceedsPaymentGatewayLimit)
+                : (int)request.Amount;
+
+            var signature = ComputePaymentSignature(
+                request.OrderCode, amount, request.Description,
+                _options.ReturnUrl, _options.CancelUrl);
+
+            var payload = new PayOSCreateRequest
             {
-                OrderCode = request.OrderCode,
-                Amount = request.Amount > int.MaxValue
-                    ? throw new InvalidOperationException(CommonConst.OrderAmountExceedsPaymentGatewayLimit)
-                    : (int)request.Amount,
+                OrderCode   = request.OrderCode,
+                Amount      = amount,
                 Description = request.Description,
-                ReturnUrl = _options.ReturnUrl,
-                CancelUrl = _options.CancelUrl,
-                BuyerName = request.BuyerName,
-                BuyerEmail = request.BuyerEmail,
-                BuyerPhone = request.BuyerPhone,
+                ReturnUrl   = _options.ReturnUrl,
+                CancelUrl   = _options.CancelUrl,
+                BuyerName   = request.BuyerName,
+                BuyerEmail  = request.BuyerEmail,
+                BuyerPhone  = request.BuyerPhone,
                 BuyerAddress = request.BuyerAddress,
-                ExpiredAt = expiredAt.ToUnixTimeSeconds(),
-                Items = request.Items.Select(x => new PaymentLinkItem
+                ExpiredAt   = (int)expiredAt.ToUnixTimeSeconds(),
+                Items = request.Items.Select(x => new PayOSItemRequest
                 {
-                    Name = x.Name,
+                    Name     = x.Name,
                     Quantity = x.Quantity,
-                    Price = checked((int)x.Price)
-                }).ToList()
+                    Price    = checked((int)x.Price)
+                }).ToList(),
+                Signature = signature
             };
 
-            var paymentLink = await _client.PaymentRequests.CreateAsync(paymentRequest);
+            var bodyJson = JsonSerializer.Serialize(payload, _jsonOpts);
+            _logger.LogInformation("PayOS create request body: {Body}", bodyJson);
+
+            using var httpReq = new HttpRequestMessage(HttpMethod.Post,
+                "https://api-merchant.payos.vn/v2/payment-requests");
+            httpReq.Headers.Add("x-client-id", _options.ClientId);
+            httpReq.Headers.Add("x-api-key",   _options.ApiKey);
+            httpReq.Content = new StringContent(bodyJson, Encoding.UTF8, "application/json");
+
+            var httpResp = await _http.SendAsync(httpReq);
+            var json = await httpResp.Content.ReadAsStringAsync();
+
+            _logger.LogInformation("PayOS create response [{Status}]: {Json}", (int)httpResp.StatusCode, json);
+
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var code = root.GetProperty("code").GetString();
+
+            if (code != "00")
+            {
+                var desc = root.TryGetProperty("desc", out var d) ? d.GetString() : json;
+                throw new InvalidOperationException($"PayOS error {code}: {desc}");
+            }
+
+            var data = root.GetProperty("data");
+            var paymentLinkId = data.GetProperty("paymentLinkId").GetString()!;
+            var checkoutUrl   = data.GetProperty("checkoutUrl").GetString()!;
+
             return new PaymentLinkResult
             {
-                OrderCode = request.OrderCode,
-                PaymentLinkId = paymentLink.PaymentLinkId,
-                CheckoutUrl = paymentLink.CheckoutUrl,
-                ExpiredAt = expiredAt.UtcDateTime
+                OrderCode     = request.OrderCode,
+                PaymentLinkId = paymentLinkId,
+                CheckoutUrl   = checkoutUrl,
+                ExpiredAt     = expiredAt.UtcDateTime
             };
         }
 
+        // ──────────────────────────────────────────────────────────────────
+        // ConfirmWebhook
+        // ──────────────────────────────────────────────────────────────────
         public async Task ConfirmWebhook(string webhookUrl)
         {
-            await _client.Webhooks.ConfirmAsync(webhookUrl);
+            await _payOS.confirmWebhook(webhookUrl);
         }
 
-        public async Task<PaymentWebhookResult> VerifyWebhook(PaymentWebhookRequest request)
+        // ──────────────────────────────────────────────────────────────────
+        // VerifyWebhook — dùng SDK v1.0.9
+        // ──────────────────────────────────────────────────────────────────
+        public Task<PaymentWebhookResult> VerifyWebhook(PaymentWebhookRequest request)
         {
-            var webhook = new Webhook
-            {
-                Code = request.Code,
-                Description = request.Description ?? string.Empty,
-                Success = request.Success,
-                Signature = request.Signature,
-                Data = new WebhookData
-                {
-                    OrderCode = request.Data.OrderCode,
-                    Amount = checked((int)request.Data.Amount),
-                    Description = request.Data.Description ?? string.Empty,
-                    AccountNumber = request.Data.AccountNumber ?? string.Empty,
-                    Reference = request.Data.Reference ?? string.Empty,
-                    TransactionDateTime = request.Data.TransactionDateTime ?? string.Empty,
-                    Currency = request.Data.Currency ?? string.Empty,
-                    PaymentLinkId = request.Data.PaymentLinkId ?? string.Empty,
-                    Code = request.Data.Code ?? string.Empty,
-                    Description2 = request.Data.Description2 ?? string.Empty,
-                    CounterAccountBankId = request.Data.CounterAccountBankId ?? string.Empty,
-                    CounterAccountBankName = request.Data.CounterAccountBankName ?? string.Empty,
-                    CounterAccountName = request.Data.CounterAccountName ?? string.Empty,
-                    CounterAccountNumber = request.Data.CounterAccountNumber ?? string.Empty,
-                    VirtualAccountName = request.Data.VirtualAccountName ?? string.Empty,
-                    VirtualAccountNumber = request.Data.VirtualAccountNumber ?? string.Empty
-                }
-            };
+            var webhookData = new WebhookData(
+                orderCode:            request.Data.OrderCode,
+                amount:               checked((int)request.Data.Amount),
+                description:          request.Data.Description ?? string.Empty,
+                accountNumber:        request.Data.AccountNumber ?? string.Empty,
+                reference:            request.Data.Reference ?? string.Empty,
+                transactionDateTime:  request.Data.TransactionDateTime ?? string.Empty,
+                currency:             request.Data.Currency ?? string.Empty,
+                paymentLinkId:        request.Data.PaymentLinkId ?? string.Empty,
+                code:                 request.Data.Code ?? string.Empty,
+                desc:                 request.Data.Description2 ?? string.Empty,
+                counterAccountBankId:   request.Data.CounterAccountBankId,
+                counterAccountBankName: request.Data.CounterAccountBankName,
+                counterAccountName:     request.Data.CounterAccountName,
+                counterAccountNumber:   request.Data.CounterAccountNumber,
+                virtualAccountName:     request.Data.VirtualAccountName,
+                virtualAccountNumber:   request.Data.VirtualAccountNumber ?? string.Empty
+            );
 
-            var expectedSig = _client.Crypto.CreateSignatureFromObject(webhook.Data, _options.ChecksumKey);
-            if (!string.Equals(expectedSig, request.Signature, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException(CommonConst.PaymentWebhookInvalid);
+            var webhookType = new WebhookType(
+                code:      request.Code,
+                desc:      request.Description ?? string.Empty,
+                success:   request.Success,
+                data:      webhookData,
+                signature: request.Signature
+            );
 
-            return new PaymentWebhookResult
+            _payOS.verifyPaymentWebhookData(webhookType);   // throws nếu signature sai
+
+            return Task.FromResult(new PaymentWebhookResult
             {
-                OrderCode = webhook.Data.OrderCode,
-                Amount = webhook.Data.Amount,
-                PaymentLinkId = webhook.Data.PaymentLinkId,
-                Reference = webhook.Data.Reference,
-                TransactionDateTime = webhook.Data.TransactionDateTime,
-                Code = webhook.Data.Code,
-                Description = webhook.Data.Description2,
-                Success = request.Success
-            };
+                OrderCode           = webhookData.orderCode,
+                Amount              = webhookData.amount,
+                PaymentLinkId       = webhookData.paymentLinkId,
+                Reference           = webhookData.reference,
+                TransactionDateTime = webhookData.transactionDateTime,
+                Code                = webhookData.code,
+                Description         = webhookData.desc,
+                Success             = request.Success
+            });
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // Helper: compute HMAC-SHA256 over the 5 required fields
+        // ──────────────────────────────────────────────────────────────────
+        private string ComputePaymentSignature(
+            long orderCode, int amount, string description,
+            string returnUrl, string cancelUrl)
+        {
+            // PayOS spec: sort alphabetically, format "key=value&..."
+            var raw = $"amount={amount}" +
+                      $"&cancelUrl={cancelUrl}" +
+                      $"&description={description}" +
+                      $"&orderCode={orderCode}" +
+                      $"&returnUrl={returnUrl}";
+
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_options.ChecksumKey));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(raw));
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // Internal DTOs cho HTTP request
+        // ──────────────────────────────────────────────────────────────────
+        private sealed class PayOSCreateRequest
+        {
+            public long   OrderCode   { get; set; }
+            public int    Amount      { get; set; }
+            public string Description { get; set; } = string.Empty;
+            public string ReturnUrl   { get; set; } = string.Empty;
+            public string CancelUrl   { get; set; } = string.Empty;
+            public string Signature   { get; set; } = string.Empty;
+            public string? BuyerName    { get; set; }
+            public string? BuyerEmail   { get; set; }
+            public string? BuyerPhone   { get; set; }
+            public string? BuyerAddress { get; set; }
+            public int?    ExpiredAt    { get; set; }
+            public List<PayOSItemRequest> Items { get; set; } = [];
+        }
+
+        private sealed class PayOSItemRequest
+        {
+            public string Name     { get; set; } = string.Empty;
+            public int    Quantity { get; set; }
+            public int    Price    { get; set; }
         }
     }
 }

@@ -35,6 +35,21 @@ namespace IncuSmart.API.Controllers
         }
 
         [Authorize(Roles = "SALES_STAFF,ADMIN")]
+        [HttpPost("sales")]
+        public async Task<IActionResult> CreateOrderBySales([FromBody] CreateOrderBySalesRequest request)
+        {
+            request.CreatedByUserId = HttpContext.GetId();
+            var result = await _orderUseCase.CreateOrderBySales(request.Adapt<CreateOrderBySalesCommand>());
+            return await FromResultAndAudit(
+                new BaseResponse<CreateOrderResponse?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data },
+                _auditLogUseCase,
+                HttpContext.GetId(),
+                AuditAction.CREATE,
+                AuditEntityType.SALES_ORDER,
+                result.Data?.OrderId);
+        }
+
+        [Authorize(Roles = "SALES_STAFF,ADMIN")]
         [HttpPost("{orderId:guid}/items/assign")]
         public async Task<IActionResult> AssignIncubatorToOrderItem(Guid orderId, [FromBody] AssignIncubatorToOrderItemRequest request)
         {
