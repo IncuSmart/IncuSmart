@@ -11,6 +11,7 @@ namespace IncuSmart.API.Requests
             set => _page = value;
         }
 
+        [FromQuery(Name = "size")]
         public int PageSize
         {
             get => _pageSize > 0 ? _pageSize : 10;
