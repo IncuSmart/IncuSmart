@@ -18,7 +18,7 @@
 
         public string? PaymentLinkId { get; set; }
 
-        public string? CheckoutUrl { get; set; }
+        public string? QrCode { get; set; }
 
         public DateTime? PaymentLinkCreatedAt { get; set; }
 
