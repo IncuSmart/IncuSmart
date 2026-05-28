@@ -11,6 +11,7 @@
         Task<ResultModel<bool>> HandlePaymentWebhook(HandleOrderPaymentWebhookCommand command);
         Task<ResultModel<bool>> CancelOrder(CancelOrderCommand command);
         Task<ResultModel<SalesOrderDetailResponse?>> GetById(Guid id, Guid? currentUserId, string role);
+        Task<ResultModel<OrderPaymentStatusResponse?>> GetPaymentStatus(Guid id, Guid? currentUserId, string role);
         Task<ResultModel<PagedResult<SalesOrder>>> List(string? status, Guid? customerId, Guid? currentUserId, string role, int page, int pageSize);
     }
 }

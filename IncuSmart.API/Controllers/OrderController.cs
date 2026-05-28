@@ -134,6 +134,21 @@ namespace IncuSmart.API.Controllers
         }
 
         [Authorize(Roles = "ADMIN,SALES_STAFF,CUSTOMER")]
+        [HttpGet("{id:guid}/payment-status")]
+        public async Task<IActionResult> GetPaymentStatus(Guid id)
+        {
+            var userId = HttpContext.GetId();
+            var role = HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
+            var result = await _orderUseCase.GetPaymentStatus(id, userId, role);
+            return FromResult(new BaseResponse<OrderPaymentStatusResponse?>
+            {
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
+        }
+
+        [Authorize(Roles = "ADMIN,SALES_STAFF,CUSTOMER")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
