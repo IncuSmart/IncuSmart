@@ -6,7 +6,8 @@ namespace IncuSmart.API.Controllers
     [Route("api/payos")]
     public class PayOSController(
         IPaymentGatewayService _paymentGatewayService,
-        IOrderUseCase _orderUseCase) : ApiControllerBase
+        IOrderUseCase _orderUseCase,
+        IMaintenanceTicketUseCase _maintenanceTicketUseCase) : ApiControllerBase
     {
         [HttpPost("webhook")]
         public async Task<IActionResult> Webhook([FromBody] PayOSWebhookRequest request)
@@ -40,7 +41,7 @@ namespace IncuSmart.API.Controllers
                     }
                 });
 
-                await _orderUseCase.HandlePaymentWebhook(new HandleOrderPaymentWebhookCommand
+                var webhookCommand = new HandleOrderPaymentWebhookCommand
                 {
                     PaymentOrderCode = verified.OrderCode,
                     Amount = verified.Amount,
@@ -50,7 +51,13 @@ namespace IncuSmart.API.Controllers
                     ProviderCode = verified.Code,
                     ProviderDescription = verified.Description,
                     Success = verified.Success
-                });
+                };
+
+                var orderResult = await _orderUseCase.HandlePaymentWebhook(webhookCommand);
+                if (orderResult.StatusCode == "404")
+                {
+                    await _maintenanceTicketUseCase.HandlePaymentWebhook(webhookCommand);
+                }
 
                 return Ok(new BaseResponse<bool> { StatusCode = "200", Message = CommonConst.Success, Data = true });
             }

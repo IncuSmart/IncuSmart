@@ -9,6 +9,7 @@ namespace IncuSmart.Core.Domains
     public class Warranty : BaseDomain<BaseStatus>
     {
         public Guid IncubatorId { get; set; }
+        public string? WarrantyCode { get; set; }
         public DateOnly? StartDate { get; set; }
         public DateOnly? EndDate { get; set; }
         public string? Notes { get; set; }

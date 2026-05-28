@@ -60,6 +60,7 @@ namespace IncuSmart.Infra.Persistences.Repositories
                     Id = incubator.Id,
                     ModelId = incubator.ModelId,
                     ModelName = model != null ? model.Name : null,
+                    ModelImageUrl = model != null ? model.ImageUrl : null,
                     SerialNumber = incubator.SerialNumber,
                     CustomerId = incubator.CustomerId,
                     ActivatedAt = incubator.ActivatedAt,

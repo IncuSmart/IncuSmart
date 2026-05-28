@@ -35,6 +35,7 @@ namespace IncuSmart.Infra.Persistences
         public DbSet<WarrantyEntity> Warranties { get; set; } = null!;
         public DbSet<MaintenanceTicketEntity> MaintenanceTickets { get; set; } = null!;
         public DbSet<MaintenanceLogEntity> MaintenanceLogs { get; set; } = null!;
+        public DbSet<MaintenanceTicketConfigItemEntity> MaintenanceTicketConfigItems { get; set; } = null!;
         public DbSet<AuditLogEntity> AuditLogs { get; set; } = null!;
         public DbSet<MlModelEntity> MlModels { get; set; } = null!;
         public DbSet<MqttConfigEntity> MqttConfigs { get; set; } = null!;

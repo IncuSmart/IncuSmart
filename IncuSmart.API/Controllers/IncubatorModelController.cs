@@ -45,6 +45,14 @@ namespace IncuSmart.API.Controllers
         }
 
         [Authorize(Roles = "ADMIN,TECHNICIAN")]
+        [HttpGet("{id}/configs")]
+        public async Task<IActionResult> GetConfigs(Guid id)
+        {
+            var result = await _modelUseCase.GetConfigs(id);
+            return FromResult(new BaseResponse<List<ModelConfigWithDetail>> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+        }
+
+        [Authorize(Roles = "ADMIN,TECHNICIAN")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateIncubatorModelRequest request)
         {

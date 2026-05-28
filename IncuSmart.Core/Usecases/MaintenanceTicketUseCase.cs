@@ -4,29 +4,41 @@ namespace IncuSmart.Core.Usecases
     {
         private readonly IMaintenanceTicketRepository _ticketRepository;
         private readonly IMaintenanceLogRepository _logRepository;
+        private readonly IMaintenanceTicketConfigItemRepository _configItemRepository;
         private readonly IIncubatorRepository _incubatorRepository;
+        private readonly IIncubatorModelConfigRepository _modelConfigRepository;
+        private readonly IConfigRepository _configRepository;
         private readonly ICustomerRepository _customerRepository;
         private readonly IUserRepository _userRepository;
         private readonly IWarrantyRepository _warrantyRepository;
+        private readonly IPaymentGatewayService _paymentGatewayService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<MaintenanceTicketUseCase> _logger;
 
         public MaintenanceTicketUseCase(
             IMaintenanceTicketRepository ticketRepository,
             IMaintenanceLogRepository logRepository,
+            IMaintenanceTicketConfigItemRepository configItemRepository,
             IIncubatorRepository incubatorRepository,
+            IIncubatorModelConfigRepository modelConfigRepository,
+            IConfigRepository configRepository,
             ICustomerRepository customerRepository,
             IUserRepository userRepository,
             IWarrantyRepository warrantyRepository,
+            IPaymentGatewayService paymentGatewayService,
             IUnitOfWork unitOfWork,
             ILogger<MaintenanceTicketUseCase> logger)
         {
             _ticketRepository = ticketRepository;
             _logRepository = logRepository;
+            _configItemRepository = configItemRepository;
             _incubatorRepository = incubatorRepository;
+            _modelConfigRepository = modelConfigRepository;
+            _configRepository = configRepository;
             _customerRepository = customerRepository;
             _userRepository = userRepository;
             _warrantyRepository = warrantyRepository;
+            _paymentGatewayService = paymentGatewayService;
             _unitOfWork = unitOfWork;
             _logger = logger;
         }
@@ -135,12 +147,35 @@ namespace IncuSmart.Core.Usecases
             var warranty = ticket.WarrantyId.HasValue
                 ? await _warrantyRepository.FindByIncubatorId(ticket.IncubatorId)
                 : null;
+            var configItems = await _configItemRepository.FindByTicketId(id);
+
+            List<MaintenanceTicketConfigItemDetail> configItemDetails = [];
+            if (configItems.Count > 0)
+            {
+                var configIds = configItems.Select(x => x.ConfigId).Distinct().ToList();
+                var configs = await _configRepository.FindByIds(configIds);
+                var configMap = configs.ToDictionary(x => x.Id);
+                configItemDetails = configItems.Select(ci => new MaintenanceTicketConfigItemDetail
+                {
+                    Id = ci.Id,
+                    TicketId = ci.TicketId,
+                    ConfigId = ci.ConfigId,
+                    ConfigName = configMap.TryGetValue(ci.ConfigId, out var cfg) ? cfg.Name : ci.ConfigId.ToString(),
+                    ConfigCode = configMap.TryGetValue(ci.ConfigId, out var cfg2) ? cfg2.Code : string.Empty,
+                    ConfigUnit = configMap.TryGetValue(ci.ConfigId, out var cfg3) ? cfg3.Unit : null,
+                    Condition = ci.Condition,
+                    MarketPrice = ci.MarketPrice,
+                    FinalPrice = ci.FinalPrice,
+                    Note = ci.Note
+                }).ToList();
+            }
 
             return ResultModelUtils.FillResult<MaintenanceTicketDetailResponse?>("200", CommonConst.Success, new MaintenanceTicketDetailResponse
             {
                 Ticket = ticket,
                 Warranty = warranty,
-                Logs = logs
+                Logs = logs,
+                ConfigItems = configItemDetails
             });
         }
 
@@ -436,6 +471,194 @@ namespace IncuSmart.Core.Usecases
             return ResultModelUtils.FillResult<List<MaintenanceLog>>("200", CommonConst.Success, logs);
         }
 
+        public async Task<ResultModel<MaintenanceTicketPaymentResponse?>> AssessConfigs(
+            AssessMaintenanceConfigsCommand command, Guid? currentUserId, string role)
+        {
+            var ticket = await _ticketRepository.FindById(command.TicketId);
+            if (ticket == null)
+                return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("404", CommonConst.MaintenanceTicketNotFound, null);
+
+            if (!await CanModifyTicket(ticket, currentUserId, role))
+                return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("403", CommonConst.AccessDenied, null);
+
+            if (ticket.Status != MaintenanceTicketStatus.ASSIGNED)
+                return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("400", CommonConst.TicketMustBeAssignedForAssessment, null);
+
+            if (command.Items == null || command.Items.Count == 0)
+                return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("400", CommonConst.AssessmentItemsRequired, null);
+
+            foreach (var item in command.Items)
+            {
+                if (!Enum.TryParse<ConfigCondition>(item.Condition, true, out _))
+                    return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("400", CommonConst.InvalidConfigCondition, null);
+                if (item.MarketPrice < 0)
+                    return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("400", CommonConst.MarketPriceMustBeNonNegative, null);
+            }
+
+            var now = DateTime.UtcNow;
+            var actor = currentUserId?.ToString() ?? CommonConst.SystemActor;
+
+            var configItems = command.Items.Select(item =>
+            {
+                var condition = Enum.Parse<ConfigCondition>(item.Condition, true);
+                var finalPrice = condition switch
+                {
+                    ConfigCondition.USER_DAMAGE => (long)Math.Round(item.MarketPrice * 0.8),
+                    ConfigCondition.MANUFACTURING_DEFECT => (long)Math.Round(item.MarketPrice * 0.2),
+                    _ => 0L
+                };
+                return new MaintenanceTicketConfigItem
+                {
+                    Id = Guid.NewGuid(),
+                    TicketId = command.TicketId,
+                    ConfigId = item.ConfigId,
+                    Condition = item.Condition.ToUpper(),
+                    MarketPrice = item.MarketPrice,
+                    FinalPrice = finalPrice,
+                    Note = item.Note?.Trim(),
+                    Status = BaseStatus.ACTIVE,
+                    CreatedAt = now,
+                    CreatedBy = actor
+                };
+            }).ToList();
+
+            var totalAmount = configItems.Sum(x => x.FinalPrice);
+
+            await _unitOfWork.BeginAsync();
+            try
+            {
+                await _configItemRepository.DeleteByTicketId(command.TicketId);
+                await _configItemRepository.AddRange(configItems);
+
+                ticket.TotalAmount = totalAmount;
+                ticket.UpdatedAt = now;
+                ticket.UpdatedBy = actor;
+
+                MaintenanceTicketPaymentResponse response;
+
+                if (totalAmount == 0)
+                {
+                    ticket.Status = MaintenanceTicketStatus.IN_PROGRESS;
+                    ticket.PaymentStatus = PaymentStatus.PAID;
+                    ticket.StartedAt ??= now;
+                    await _ticketRepository.Update(ticket);
+                    await _unitOfWork.CommitAsync();
+
+                    response = new MaintenanceTicketPaymentResponse
+                    {
+                        TicketId = ticket.Id,
+                        TotalAmount = 0,
+                        RequiresPayment = false,
+                        PaymentStatus = PaymentStatus.PAID
+                    };
+                    return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("200", CommonConst.AssessConfigsSuccessfully, response);
+                }
+
+                var paymentOrderCode = GeneratePaymentOrderCode();
+                var incubator = await _incubatorRepository.FindById(ticket.IncubatorId);
+
+                Guid? technicianUserId = ticket.TechnicianId;
+                User? technicianUser = technicianUserId.HasValue
+                    ? await _userRepository.FindById(technicianUserId.Value)
+                    : null;
+
+                var paymentLink = await _paymentGatewayService.CreatePaymentLink(new PaymentLinkRequest
+                {
+                    OrderCode = paymentOrderCode,
+                    Amount = totalAmount,
+                    Description = BuildPaymentDescription(ticket.Id),
+                    BuyerName = technicianUser?.FullName,
+                    Items = configItems.Select(ci => new PaymentItemRequest
+                    {
+                        Name = $"Config {ci.ConfigId.ToString()[..8]}",
+                        Quantity = 1,
+                        Price = ci.FinalPrice
+                    }).ToList()
+                });
+
+                ticket.Status = MaintenanceTicketStatus.AWAITING_PAYMENT;
+                ticket.PaymentStatus = PaymentStatus.PENDING;
+                ticket.PaymentOrderCode = paymentOrderCode;
+                ticket.PaymentLinkId = paymentLink.PaymentLinkId;
+                ticket.QrCode = paymentLink.QrCode;
+                ticket.PaymentLinkCreatedAt = now;
+                ticket.PaymentLinkExpiredAt = paymentLink.ExpiredAt;
+
+                await _ticketRepository.Update(ticket);
+                await _unitOfWork.CommitAsync();
+
+                response = new MaintenanceTicketPaymentResponse
+                {
+                    TicketId = ticket.Id,
+                    TotalAmount = totalAmount,
+                    RequiresPayment = true,
+                    PaymentStatus = PaymentStatus.PENDING,
+                    PaymentOrderCode = paymentOrderCode,
+                    PaymentLinkId = paymentLink.PaymentLinkId,
+                    QrCode = paymentLink.QrCode,
+                    PaymentLinkExpiredAt = paymentLink.ExpiredAt
+                };
+                return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("200", CommonConst.AssessConfigsAndPaymentLinkSuccessfully, response);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                _logger.LogError(ex, "Error assessing configs for ticket {TicketId}", command.TicketId);
+                return ResultModelUtils.FillResult<MaintenanceTicketPaymentResponse?>("500", ex.Message, null);
+            }
+        }
+
+        public async Task<ResultModel<bool>> HandlePaymentWebhook(HandleOrderPaymentWebhookCommand command)
+        {
+            var ticket = await _ticketRepository.FindByPaymentOrderCode(command.PaymentOrderCode);
+            if (ticket == null)
+                return ResultModelUtils.FillResult<bool>("404", CommonConst.MaintenanceTicketPaymentOrderNotFound, false);
+
+            if (ticket.PaymentStatus == PaymentStatus.PAID)
+                return ResultModelUtils.FillResult<bool>("200", CommonConst.PaymentWebhookProcessedSuccessfully, true);
+
+            await _unitOfWork.BeginAsync();
+            try
+            {
+                ticket.PaymentLinkId ??= command.PaymentLinkId;
+                ticket.UpdatedAt = DateTime.UtcNow;
+                ticket.UpdatedBy = CommonConst.SystemActor;
+
+                if (command.Success && string.Equals(command.ProviderCode, "00", StringComparison.OrdinalIgnoreCase))
+                {
+                    ticket.PaymentStatus = PaymentStatus.PAID;
+                    ticket.PaidAt ??= DateTime.UtcNow;
+                    ticket.Status = MaintenanceTicketStatus.IN_PROGRESS;
+                    ticket.StartedAt ??= DateTime.UtcNow;
+                }
+                else
+                {
+                    ticket.PaymentStatus = PaymentStatus.FAILED;
+                }
+
+                await _ticketRepository.Update(ticket);
+                await _unitOfWork.CommitAsync();
+                return ResultModelUtils.FillResult<bool>("200", CommonConst.PaymentWebhookProcessedSuccessfully, true);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                _logger.LogError(ex, "Error handling payment webhook for maintenance ticket {PaymentOrderCode}", command.PaymentOrderCode);
+                return ResultModelUtils.FillResult<bool>("500", ex.Message, false);
+            }
+        }
+
+        private static string BuildPaymentDescription(Guid ticketId)
+        {
+            var desc = $"Sua chua {CommonConst.MaintenanceCodePrefix}-{ticketId.ToString()[..8]}";
+            return desc.Length > 25 ? desc[..25] : desc;
+        }
+
+        private static long GeneratePaymentOrderCode()
+        {
+            return long.Parse($"{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{CodeGenUtils.GenerateNumeric(6)}");
+        }
+
         private async Task<ResultModel<Guid?>?> ValidateTechnician(Guid technicianId)
         {
             var technician = await _userRepository.FindById(technicianId);
@@ -524,6 +747,10 @@ namespace IncuSmart.Core.Usecases
                     or MaintenanceTicketStatus.REJECTED
                     or MaintenanceTicketStatus.CANCELLED,
                 MaintenanceTicketStatus.ASSIGNED => nextStatus is MaintenanceTicketStatus.IN_PROGRESS
+                    or MaintenanceTicketStatus.AWAITING_PAYMENT
+                    or MaintenanceTicketStatus.REJECTED
+                    or MaintenanceTicketStatus.CANCELLED,
+                MaintenanceTicketStatus.AWAITING_PAYMENT => nextStatus is MaintenanceTicketStatus.IN_PROGRESS
                     or MaintenanceTicketStatus.REJECTED
                     or MaintenanceTicketStatus.CANCELLED,
                 MaintenanceTicketStatus.IN_PROGRESS => nextStatus is MaintenanceTicketStatus.RESOLVED

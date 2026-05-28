@@ -21,6 +21,13 @@ namespace IncuSmart.Infra.Persistences.Repositories
             return entity?.Adapt<MaintenanceTicket>();
         }
 
+        public async Task<MaintenanceTicket?> FindByPaymentOrderCode(long paymentOrderCode)
+        {
+            var entity = await _dbContext.MaintenanceTickets
+                .FirstOrDefaultAsync(x => x.PaymentOrderCode == paymentOrderCode && x.DeletedAt == null);
+            return entity?.Adapt<MaintenanceTicket>();
+        }
+
         public async Task<List<MaintenanceTicket>> List(
             Guid? incubatorId, Guid? technicianId, Guid? customerId, string? status)
         {
@@ -42,6 +49,37 @@ namespace IncuSmart.Infra.Persistences.Repositories
             return (await query.OrderByDescending(x => x.CreatedAt).ToListAsync())
                 .Adapt<List<MaintenanceTicket>>();
         }
+    }
+
+    public class MaintenanceTicketConfigItemRepository : IMaintenanceTicketConfigItemRepository
+    {
+        private readonly ApplicationDbContext _dbContext;
+        public MaintenanceTicketConfigItemRepository(ApplicationDbContext dbContext) => _dbContext = dbContext;
+
+        public async Task AddRange(List<MaintenanceTicketConfigItem> items) =>
+            await _dbContext.MaintenanceTicketConfigItems.AddRangeAsync(
+                items.Adapt<List<MaintenanceTicketConfigItemEntity>>());
+
+        public async Task DeleteByTicketId(Guid ticketId)
+        {
+            var entities = await _dbContext.MaintenanceTicketConfigItems
+                .Where(x => x.TicketId == ticketId && x.DeletedAt == null)
+                .ToListAsync();
+
+            var now = DateTime.UtcNow;
+            foreach (var e in entities)
+            {
+                e.DeletedAt = now;
+                e.DeletedBy = CommonConst.SystemActor;
+            }
+        }
+
+        public async Task<List<MaintenanceTicketConfigItem>> FindByTicketId(Guid ticketId) =>
+            (await _dbContext.MaintenanceTicketConfigItems
+                .Where(x => x.TicketId == ticketId && x.DeletedAt == null)
+                .OrderBy(x => x.CreatedAt)
+                .ToListAsync())
+            .Adapt<List<MaintenanceTicketConfigItem>>();
     }
 
     public class MaintenanceLogRepository : IMaintenanceLogRepository

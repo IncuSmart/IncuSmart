@@ -67,6 +67,7 @@
         services.AddScoped<IWarrantyRepository, WarrantyRepository>();
         services.AddScoped<IMaintenanceTicketRepository, MaintenanceTicketRepository>();
         services.AddScoped<IMaintenanceLogRepository, MaintenanceLogRepository>();
+        services.AddScoped<IMaintenanceTicketConfigItemRepository, MaintenanceTicketConfigItemRepository>();
 
         services.AddScoped<IPaymentGatewayService, PayOSPaymentGatewayService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
