@@ -69,6 +69,14 @@ namespace IncuSmart.Core.Responses
         public DateTime? PaymentLinkExpiredAt { get; set; }
     }
 
+    public class OrderPaymentStatusResponse
+    {
+        public Guid OrderId { get; set; }
+        public string? OrderCode { get; set; }
+        public PaymentStatus PaymentStatus { get; set; }
+        public DateTime? PaidAt { get; set; }
+    }
+
     public class MaintenanceTicketDetailResponse
     {
         public MaintenanceTicket? Ticket { get; set; }

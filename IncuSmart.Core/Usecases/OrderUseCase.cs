@@ -652,6 +652,31 @@ namespace IncuSmart.Core.Usecases
             });
         }
 
+        public async Task<ResultModel<OrderPaymentStatusResponse?>> GetPaymentStatus(Guid id, Guid? currentUserId, string role)
+        {
+            var order = await _salesOrderRepository.FindById(id);
+            if (order == null)
+                return ResultModelUtils.FillResult<OrderPaymentStatusResponse?>("404", CommonConst.OrderNotFound, null);
+
+            if (role == UserRole.CUSTOMER.ToString())
+            {
+                if (!currentUserId.HasValue)
+                    return ResultModelUtils.FillResult<OrderPaymentStatusResponse?>("401", CommonConst.Unauthorized, null);
+
+                var customer = await _customerRepository.FindByUserId(currentUserId.Value);
+                if (customer == null || order.CustomerId != customer.Id)
+                    return ResultModelUtils.FillResult<OrderPaymentStatusResponse?>("403", CommonConst.AccessDenied, null);
+            }
+
+            return ResultModelUtils.FillResult<OrderPaymentStatusResponse?>("200", CommonConst.Success, new OrderPaymentStatusResponse
+            {
+                OrderId = order.Id,
+                OrderCode = order.OrderCode,
+                PaymentStatus = order.PaymentStatus,
+                PaidAt = order.PaidAt
+            });
+        }
+
         public async Task<ResultModel<PagedResult<SalesOrder>>> List(string? status, Guid? customerId, Guid? currentUserId, string role, int page, int pageSize)
         {
             Guid? effectiveCustomerId = customerId;
