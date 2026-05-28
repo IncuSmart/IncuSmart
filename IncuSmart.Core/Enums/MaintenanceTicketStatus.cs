@@ -4,6 +4,7 @@ namespace IncuSmart.Core.Enums
     {
         PENDING,
         ASSIGNED,
+        AWAITING_PAYMENT,
         IN_PROGRESS,
         RESOLVED,
         REJECTED,

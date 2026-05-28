@@ -10,5 +10,7 @@ namespace IncuSmart.Core.Ports.Inbound
         Task<ResultModel<bool>> Cancel(Guid id, Guid? currentUserId, string role);
         Task<ResultModel<Guid?>> AddLog(CreateMaintenanceLogCommand command, Guid? currentUserId, string role);
         Task<ResultModel<List<MaintenanceLog>>> GetLogs(Guid ticketId, Guid? currentUserId, string role);
+        Task<ResultModel<MaintenanceTicketPaymentResponse?>> AssessConfigs(AssessMaintenanceConfigsCommand command, Guid? currentUserId, string role);
+        Task<ResultModel<bool>> HandlePaymentWebhook(HandleOrderPaymentWebhookCommand command);
     }
 }

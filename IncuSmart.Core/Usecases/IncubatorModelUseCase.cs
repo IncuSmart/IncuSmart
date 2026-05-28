@@ -98,6 +98,42 @@ namespace IncuSmart.Core.Usecases
                 : ResultModelUtils.FillResult<IncubatorModel?>("200", CommonConst.Success, model);
         }
 
+        public async Task<ResultModel<List<ModelConfigWithDetail>>> GetConfigs(Guid modelId)
+        {
+            var model = await _modelRepository.FindById(modelId);
+            if (model == null)
+                return ResultModelUtils.FillResult<List<ModelConfigWithDetail>>("404", CommonConst.IncubatorModelNotFound, []);
+
+            var modelConfigs = await _modelConfigRepository.FindByModelId(modelId);
+            if (modelConfigs.Count == 0)
+                return ResultModelUtils.FillResult<List<ModelConfigWithDetail>>("200", CommonConst.Success, []);
+
+            var configIds = modelConfigs.Select(x => x.ConfigId).Distinct().ToList();
+            var configs = await _configRepository.FindByIds(configIds);
+            var configMap = configs.ToDictionary(x => x.Id);
+
+            var result = modelConfigs
+                .Where(mc => configMap.ContainsKey(mc.ConfigId))
+                .Select(mc =>
+                {
+                    var cfg = configMap[mc.ConfigId];
+                    return new ModelConfigWithDetail
+                    {
+                        ModelConfigId = mc.Id,
+                        ConfigId = mc.ConfigId,
+                        ConfigCode = cfg.Code,
+                        ConfigName = cfg.Name,
+                        ConfigType = cfg.Type,
+                        ConfigUnit = cfg.Unit,
+                        Quantity = mc.Quantity,
+                        Required = mc.Required
+                    };
+                })
+                .ToList();
+
+            return ResultModelUtils.FillResult<List<ModelConfigWithDetail>>("200", CommonConst.Success, result);
+        }
+
         public async Task<ResultModel<PagedResult<IncubatorModel>>> List(string? status, string? search, int page, int pageSize)
         {
             var list = await _modelRepository.List(status, search);

@@ -193,5 +193,17 @@ namespace IncuSmart.Core.Common
         public const string StatusRequired = "Bắt buộc phải có trạng thái";
         public const string StatusMaxLength = "Trạng thái không được vượt quá 30 ký tự";
         public const string ResolutionSummaryMaxLength = "Tóm tắt kết quả xử lý không được vượt quá 1000 ký tự";
+
+        // Maintenance config assessment
+        public const string AssessConfigsSuccessfully = "Đánh giá cấu hình thành công";
+        public const string AssessConfigsAndPaymentLinkSuccessfully = "Đánh giá cấu hình và tạo link thanh toán thành công";
+        public const string InvalidConfigCondition = "Điều kiện cấu hình không hợp lệ, chỉ chấp nhận NORMAL, USER_DAMAGE hoặc MANUFACTURING_DEFECT";
+        public const string MarketPriceMustBeNonNegative = "Giá thị trường không được âm";
+        public const string AssessmentItemsRequired = "Bắt buộc phải có danh sách đánh giá cấu hình";
+        public const string TicketMustBeAssignedForAssessment = "Phiếu phải ở trạng thái đã gán trước khi đánh giá";
+        public const string MaintenanceTicketPaymentOrderNotFound = "Không tìm thấy phiếu bảo trì tương ứng với giao dịch thanh toán";
+        public const string MaintenanceCodePrefix = "MT";
+        public const string AutoWarrantyNotes = "Bảo hành tự động khi hoàn tất đơn hàng";
+        public const string CreateWarrantyAutoSuccessfully = "Tạo bảo hành tự động thành công";
     }
 }

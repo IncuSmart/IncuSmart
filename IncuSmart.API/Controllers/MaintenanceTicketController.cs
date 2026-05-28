@@ -104,5 +104,30 @@ namespace IncuSmart.API.Controllers
             var result = await _maintenanceTicketUseCase.GetLogs(id, HttpContext.GetId(), HttpContext.GetRole());
             return FromResult(new BaseResponse<List<MaintenanceLog>> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
         }
+
+        [Authorize(Roles = "ADMIN,TECHNICIAN")]
+        [HttpPost("{id}/assess-configs")]
+        public async Task<IActionResult> AssessConfigs(Guid id, [FromBody] AssessMaintenanceConfigsRequest request)
+        {
+            var command = new AssessMaintenanceConfigsCommand
+            {
+                TicketId = id,
+                Items = request.Items.Select(x => new ConfigAssessmentItem
+                {
+                    ConfigId = x.ConfigId,
+                    Condition = x.Condition,
+                    MarketPrice = x.MarketPrice,
+                    Note = x.Note
+                }).ToList()
+            };
+            var result = await _maintenanceTicketUseCase.AssessConfigs(command, HttpContext.GetId(), HttpContext.GetRole());
+            return await FromResultAndAudit(
+                new BaseResponse<MaintenanceTicketPaymentResponse?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data },
+                _auditLogUseCase,
+                HttpContext.GetId(),
+                AuditAction.UPDATE_STATUS,
+                AuditEntityType.MAINTENANCE_TICKET,
+                id);
+        }
     }
 }

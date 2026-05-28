@@ -92,6 +92,7 @@ namespace IncuSmart.Core.Usecases
                 {
                     Id = Guid.NewGuid(),
                     IncubatorId = command.IncubatorId,
+                    WarrantyCode = GenerateWarrantyCode(),
                     StartDate = command.StartDate,
                     EndDate = command.EndDate,
                     Notes = string.IsNullOrWhiteSpace(command.Notes) ? null : command.Notes.Trim(),
@@ -161,6 +162,11 @@ namespace IncuSmart.Core.Usecases
             return warranty == null
                 ? ResultModelUtils.FillResult<Warranty?>("404", CommonConst.WarrantyNotFound, null)
                 : ResultModelUtils.FillResult<Warranty?>("200", CommonConst.Success, warranty);
+        }
+
+        private static string GenerateWarrantyCode()
+        {
+            return $"BH-{DateTime.UtcNow:yyyyMMdd}-{CodeGenUtils.GenerateNumeric(4)}";
         }
     }
 }

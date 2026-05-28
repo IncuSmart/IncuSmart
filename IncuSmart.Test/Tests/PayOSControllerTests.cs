@@ -11,13 +11,14 @@ namespace IncuSmart.Test.Tests
 {
     public class PayOSControllerTests
     {
-        private readonly Mock<IPaymentGatewayService> _paymentGatewayService = new();
-        private readonly Mock<IOrderUseCase>          _orderUseCase          = new();
-        private readonly PayOSController              _controller;
+        private readonly Mock<IPaymentGatewayService>       _paymentGatewayService       = new();
+        private readonly Mock<IOrderUseCase>                _orderUseCase                = new();
+        private readonly Mock<IMaintenanceTicketUseCase>    _maintenanceTicketUseCase    = new();
+        private readonly PayOSController                    _controller;
 
         public PayOSControllerTests()
         {
-            _controller = new PayOSController(_paymentGatewayService.Object, _orderUseCase.Object);
+            _controller = new PayOSController(_paymentGatewayService.Object, _orderUseCase.Object, _maintenanceTicketUseCase.Object);
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
         }
 

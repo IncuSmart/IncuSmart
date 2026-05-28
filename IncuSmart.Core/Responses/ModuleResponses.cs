@@ -14,6 +14,7 @@ namespace IncuSmart.Core.Responses
         public Guid Id { get; set; }
         public Guid ModelId { get; set; }
         public string? ModelName { get; set; }
+        public string? ModelImageUrl { get; set; }
         public string? SerialNumber { get; set; }
         public Guid? CustomerId { get; set; }
         public DateTime? ActivatedAt { get; set; }
@@ -77,11 +78,50 @@ namespace IncuSmart.Core.Responses
         public DateTime? PaidAt { get; set; }
     }
 
+    public class MaintenanceTicketConfigItemDetail
+    {
+        public Guid Id { get; set; }
+        public Guid TicketId { get; set; }
+        public Guid ConfigId { get; set; }
+        public string ConfigName { get; set; } = string.Empty;
+        public string ConfigCode { get; set; } = string.Empty;
+        public string? ConfigUnit { get; set; }
+        public string Condition { get; set; } = string.Empty;
+        public long MarketPrice { get; set; }
+        public long FinalPrice { get; set; }
+        public string? Note { get; set; }
+    }
+
     public class MaintenanceTicketDetailResponse
     {
         public MaintenanceTicket? Ticket { get; set; }
         public Warranty? Warranty { get; set; }
         public List<MaintenanceLog> Logs { get; set; } = [];
+        public List<MaintenanceTicketConfigItemDetail> ConfigItems { get; set; } = [];
+    }
+
+    public class ModelConfigWithDetail
+    {
+        public Guid ModelConfigId { get; set; }
+        public Guid ConfigId { get; set; }
+        public string ConfigCode { get; set; } = string.Empty;
+        public string ConfigName { get; set; } = string.Empty;
+        public string? ConfigType { get; set; }
+        public string? ConfigUnit { get; set; }
+        public int? Quantity { get; set; }
+        public bool? Required { get; set; }
+    }
+
+    public class MaintenanceTicketPaymentResponse
+    {
+        public Guid TicketId { get; set; }
+        public long TotalAmount { get; set; }
+        public bool RequiresPayment { get; set; }
+        public PaymentStatus? PaymentStatus { get; set; }
+        public long? PaymentOrderCode { get; set; }
+        public string? PaymentLinkId { get; set; }
+        public string? QrCode { get; set; }
+        public DateTime? PaymentLinkExpiredAt { get; set; }
     }
 
     public class CustomerSummaryResponse

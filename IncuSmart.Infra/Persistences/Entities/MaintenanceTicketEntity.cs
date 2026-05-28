@@ -16,6 +16,16 @@ namespace IncuSmart.Infra.Persistences.Entities
         public DateTime? CancelledAt { get; set; }
         public DateTime? ClosedAt { get; set; }
 
+        // Payment fields
+        public long TotalAmount { get; set; }
+        public PaymentStatus? PaymentStatus { get; set; }
+        public long? PaymentOrderCode { get; set; }
+        public string? PaymentLinkId { get; set; }
+        public string? QrCode { get; set; }
+        public DateTime? PaymentLinkCreatedAt { get; set; }
+        public DateTime? PaymentLinkExpiredAt { get; set; }
+        public DateTime? PaidAt { get; set; }
+
         [ForeignKey("IncubatorId")]
         public IncubatorEntity? Incubator { get; set; }
 
