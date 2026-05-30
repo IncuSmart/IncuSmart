@@ -670,12 +670,88 @@ namespace IncuSmart.Core.Usecases
                     return ResultModelUtils.FillResult<SalesOrderDetailResponse?>("403", CommonConst.AccessDenied, null);
             }
 
+            if (order.PaymentStatus == PaymentStatus.PENDING
+                && order.PaymentLinkExpiredAt.HasValue
+                && order.PaymentLinkExpiredAt.Value < DateTime.UtcNow)
+            {
+                await RefreshPaymentLinkAsync(order, currentUserId);
+            }
+
             var items = await _salesOrderItemRepository.FindByOrderId(id);
             return ResultModelUtils.FillResult<SalesOrderDetailResponse?>("200", CommonConst.Success, new SalesOrderDetailResponse
             {
                 Order = order,
                 Items = items
             });
+        }
+
+        private async Task RefreshPaymentLinkAsync(SalesOrder order, Guid? currentUserId)
+        {
+            try
+            {
+                string buyerName = string.Empty, buyerPhone = string.Empty;
+                string? buyerEmail = null, buyerAddress = null;
+
+                if (order.CustomerId.HasValue)
+                {
+                    var customer = await _customerRepository.FindById(order.CustomerId.Value);
+                    if (customer != null)
+                    {
+                        var user = await _userRepository.FindById(customer.UserId);
+                        buyerName    = user?.FullName ?? string.Empty;
+                        buyerEmail   = user?.Email;
+                        buyerPhone   = user?.Phone ?? string.Empty;
+                        buyerAddress = customer.Address;
+                    }
+                }
+                else
+                {
+                    var guestInfo = await _guestOrderInfoRepository.FindByOrderId(order.Id);
+                    buyerName  = guestInfo?.FullName ?? string.Empty;
+                    buyerEmail = guestInfo?.Email;
+                    buyerPhone = guestInfo?.Phone ?? string.Empty;
+                }
+
+                var orderItems = await _salesOrderItemRepository.FindByOrderId(order.Id);
+                var modelIds   = orderItems.Select(x => x.IncubatorModelId).Distinct().ToList();
+                var models     = await _incubatorModelRepository.FindByIds(modelIds);
+                var modelsById = models.ToDictionary(x => x.Id);
+
+                var paymentItems = orderItems
+                    .GroupBy(x => x.IncubatorModelId)
+                    .Select(g => new PaymentItemRequest
+                    {
+                        Name     = modelsById.TryGetValue(g.Key, out var m) ? m.Name : g.Key.ToString(),
+                        Quantity = g.Count(),
+                        Price    = g.First().UnitPrice
+                    })
+                    .ToList();
+
+                var newPaymentOrderCode  = GeneratePaymentOrderCode();
+                order.PaymentOrderCode   = newPaymentOrderCode;
+
+                var paymentLink = await _paymentGatewayService.CreatePaymentLink(new PaymentLinkRequest
+                {
+                    OrderCode    = newPaymentOrderCode,
+                    Amount       = order.TotalAmount,
+                    Description  = BuildPaymentDescription(order.OrderCode),
+                    BuyerName    = buyerName,
+                    BuyerEmail   = buyerEmail,
+                    BuyerPhone   = buyerPhone,
+                    BuyerAddress = buyerAddress,
+                    Items        = paymentItems
+                });
+
+                ApplyPaymentLink(order, paymentLink, currentUserId?.ToString() ?? CommonConst.SystemActor);
+
+                await _unitOfWork.BeginAsync();
+                await _salesOrderRepository.Update(order);
+                await _unitOfWork.CommitAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error refreshing payment link for order {OrderId}", order.Id);
+            }
         }
 
         public async Task<ResultModel<OrderPaymentStatusResponse?>> GetPaymentStatus(Guid id, Guid? currentUserId, string role)
