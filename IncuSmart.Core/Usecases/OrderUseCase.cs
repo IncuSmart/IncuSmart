@@ -350,6 +350,43 @@ namespace IncuSmart.Core.Usecases
             }
         }
 
+        public async Task<ResultModel<bool>> ShipOrder(ShipOrderCommand command)
+        {
+            var order = await _salesOrderRepository.FindById(command.OrderId);
+            if (order == null)
+                return ResultModelUtils.FillResult<bool>("404", CommonConst.OrderNotFound, false);
+
+            if (order.PaymentStatus != PaymentStatus.PAID)
+                return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderPaymentNotCompleted, false);
+
+            if (order.Status != OrderStatus.PROCESSING)
+                return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderCannotBeUpdated, false);
+
+            var orderItems = await _salesOrderItemRepository.FindByOrderId(command.OrderId);
+            if (!orderItems.Any())
+                return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderHasNoItems, false);
+
+            if (orderItems.Any(x => x.Status != OrderItemStatus.ASSIGNED || x.IncubatorId == null))
+                return ResultModelUtils.FillResult<bool>("400", CommonConst.AllSalesOrderItemsMustBeAssignedBeforeCompletion, false);
+
+            await _unitOfWork.BeginAsync();
+            try
+            {
+                order.Status    = OrderStatus.SHIPPING;
+                order.UpdatedAt = DateTime.UtcNow;
+                order.UpdatedBy = CommonConst.SystemActor;
+                await _salesOrderRepository.Update(order);
+                await _unitOfWork.CommitAsync();
+                return ResultModelUtils.FillResult<bool>("200", CommonConst.Success, true);
+            }
+            catch (Exception e)
+            {
+                await _unitOfWork.RollbackAsync();
+                _logger.LogError(e, "Error shipping order {OrderId}", command.OrderId);
+                return ResultModelUtils.FillResult<bool>("500", e.Message, false);
+            }
+        }
+
         public async Task<ResultModel<bool>> CompleteOrder(CompleteOrderCommand command)
         {
             var order = await _salesOrderRepository.FindById(command.OrderId);
@@ -371,6 +408,18 @@ namespace IncuSmart.Core.Usecases
             if (order.Status == OrderStatus.COMPLETED)
             {
                 return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderAlreadyCompleted, false);
+            }
+
+            if (order.Status != OrderStatus.SHIPPING)
+            {
+                return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderCannotBeUpdated, false);
+            }
+
+            if (command.Role == UserRole.CUSTOMER.ToString() && command.UserId.HasValue)
+            {
+                var customer = await _customerRepository.FindByUserId(command.UserId.Value);
+                if (customer == null || order.CustomerId != customer.Id)
+                    return ResultModelUtils.FillResult<bool>("403", CommonConst.AccessDenied, false);
             }
 
             var orderItems = await _salesOrderItemRepository.FindByOrderId(command.OrderId);

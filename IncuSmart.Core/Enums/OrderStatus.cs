@@ -4,6 +4,7 @@
     {
         PENDING,
         PROCESSING,
+        SHIPPING,
         COMPLETED,
         CANCELLED
     }
