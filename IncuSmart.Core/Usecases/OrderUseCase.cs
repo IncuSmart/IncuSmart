@@ -513,7 +513,7 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<bool>("404", CommonConst.CustomerNotFound, false);
             }
 
-            var order = await _salesOrderRepository.FindById(command.OrderId);
+            var order = await _salesOrderRepository.FindByOrderCode(command.OrderCode);
             if (order == null)
             {
                 return ResultModelUtils.FillResult<bool>("404", CommonConst.OrderNotFound, false);
@@ -529,7 +529,7 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<bool>("400", CommonConst.OnlyCompletedGuestOrdersCanBeClaimed, false);
             }
 
-            var guestOrderInfo = await _guestOrderInfoRepository.FindByOrderId(command.OrderId);
+            var guestOrderInfo = await _guestOrderInfoRepository.FindByOrderId(order.Id);
             if (guestOrderInfo == null)
             {
                 return ResultModelUtils.FillResult<bool>("404", CommonConst.GuestOrderInformationNotFound, false);
@@ -550,7 +550,7 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<bool>("400", CommonConst.InvalidVerificationPass, false);
             }
 
-            var orderItems = await _salesOrderItemRepository.FindByOrderId(command.OrderId);
+            var orderItems = await _salesOrderItemRepository.FindByOrderId(order.Id);
             if (orderItems.Any(x => x.Status != OrderItemStatus.ASSIGNED || x.IncubatorId == null))
             {
                 return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderMissingAssignedIncubators, false);
@@ -590,7 +590,7 @@ namespace IncuSmart.Core.Usecases
             catch (Exception e)
             {
                 await _unitOfWork.RollbackAsync();
-                _logger.LogError(e, "Error claiming guest order {OrderId}", command.OrderId);
+                _logger.LogError(e, "Error claiming guest order {OrderCode}", command.OrderCode);
                 return ResultModelUtils.FillResult<bool>("500", e.Message, false);
             }
         }

@@ -109,8 +109,7 @@ namespace IncuSmart.API.Controllers
                 _auditLogUseCase,
                 HttpContext.GetId(),
                 AuditAction.CLAIM_GUEST_ORDER,
-                AuditEntityType.SALES_ORDER,
-                request.OrderId);
+                AuditEntityType.SALES_ORDER);
         }
 
         [Authorize(Roles = "ADMIN,SALES_STAFF,CUSTOMER")]

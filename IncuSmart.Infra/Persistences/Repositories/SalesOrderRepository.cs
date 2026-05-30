@@ -22,6 +22,13 @@
             return entity?.Adapt<SalesOrder>();
         }
 
+        public async Task<SalesOrder?> FindByOrderCode(string orderCode)
+        {
+            var entity = await _dbContext.SalesOrders
+                .FirstOrDefaultAsync(x => x.OrderCode == orderCode && x.DeletedAt == null);
+            return entity?.Adapt<SalesOrder>();
+        }
+
         public async Task<SalesOrder?> FindByPaymentOrderCode(long paymentOrderCode)
         {
             var entity = await _dbContext.SalesOrders
