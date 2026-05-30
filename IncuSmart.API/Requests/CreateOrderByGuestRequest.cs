@@ -18,7 +18,7 @@ namespace IncuSmart.API.Requests
         [EmailAddress]
         public string? Email { get; set; }
 
-        public string? Address { get; set; }
+        public string? ShippingAddress { get; set; }
         public string? Description { get; set; }
 
         [Required]
