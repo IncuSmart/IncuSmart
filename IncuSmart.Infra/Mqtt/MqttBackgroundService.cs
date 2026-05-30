@@ -39,15 +39,17 @@ namespace IncuSmart.Infra.Mqtt
             var opts = BuildOptions();
             await client.StartAsync(opts);
 
-            await client.SubscribeAsync(new MqttTopicFilterBuilder()
-                .WithTopic("incubator/+/telemetry")
-                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-                .Build());
-
-            await client.SubscribeAsync(new MqttTopicFilterBuilder()
-                .WithTopic("incubator/+/status")
-                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-                .Build());
+            await client.SubscribeAsync(new[]
+            {
+                new MqttTopicFilterBuilder()
+                    .WithTopic("incubator/+/telemetry")
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                    .Build(),
+                new MqttTopicFilterBuilder()
+                    .WithTopic("incubator/+/status")
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                    .Build()
+            });
 
             _logger.LogInformation("[MQTT] Subscribed — waiting for device messages");
 

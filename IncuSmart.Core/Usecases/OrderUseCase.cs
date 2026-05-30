@@ -109,7 +109,7 @@ namespace IncuSmart.Core.Usecases
                 await _salesOrderRepository.Update(salesOrder);
 
                 await _unitOfWork.CommitAsync();
-                return ResultModelUtils.FillResult("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
             catch (Exception e)
             {
@@ -191,7 +191,7 @@ namespace IncuSmart.Core.Usecases
                 await _salesOrderRepository.Update(salesOrder);
 
                 await _unitOfWork.CommitAsync();
-                return ResultModelUtils.FillResult("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
             catch (Exception e)
             {
@@ -262,7 +262,7 @@ namespace IncuSmart.Core.Usecases
                 await _salesOrderRepository.Update(salesOrder);
 
                 await _unitOfWork.CommitAsync();
-                return ResultModelUtils.FillResult("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
             catch (Exception e)
             {
