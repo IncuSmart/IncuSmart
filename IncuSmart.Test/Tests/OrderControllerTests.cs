@@ -211,7 +211,7 @@ namespace IncuSmart.Test.Tests
             _orderUseCase.Setup(x => x.ClaimGuestOrder(It.IsAny<IncuSmart.Core.Commands.ClaimGuestOrderCommand>()))
                 .ReturnsAsync(ControllerTestBase.OkResult(true));
 
-            var result = await _controller.ClaimGuestOrder(new ClaimGuestOrderRequest { OrderId = OrderId, VerificationPass = "pass123456" });
+            var result = await _controller.ClaimGuestOrder(new ClaimGuestOrderRequest { OrderCode = "SO-20260527-0001", VerificationPass = "pass123456" });
 
             result.Should().BeOfType<OkObjectResult>();
         }
@@ -223,7 +223,7 @@ namespace IncuSmart.Test.Tests
             _orderUseCase.Setup(x => x.ClaimGuestOrder(It.IsAny<IncuSmart.Core.Commands.ClaimGuestOrderCommand>()))
                 .ReturnsAsync(ControllerTestBase.NotFoundResult<bool>("Đơn hàng không tồn tại"));
 
-            var result = await _controller.ClaimGuestOrder(new ClaimGuestOrderRequest { OrderId = Guid.NewGuid(), VerificationPass = "pass123456" });
+            var result = await _controller.ClaimGuestOrder(new ClaimGuestOrderRequest { OrderCode = "SO-NOTFOUND-0000", VerificationPass = "pass123456" });
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }

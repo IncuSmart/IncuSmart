@@ -5,7 +5,7 @@ namespace IncuSmart.API.Requests
     public class ClaimGuestOrderRequest
     {
         [Required]
-        public Guid OrderId { get; set; }
+        public string OrderCode { get; set; } = string.Empty;
 
         [Required]
         [MinLength(6, ErrorMessage = "Verification pass must be at least 6 characters")]
