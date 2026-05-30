@@ -66,10 +66,29 @@ namespace IncuSmart.API.Controllers
         }
 
         [Authorize(Roles = "SALES_STAFF,ADMIN")]
+        [HttpPost("{orderId:guid}/ship")]
+        public async Task<IActionResult> ShipOrder(Guid orderId)
+        {
+            var result = await _orderUseCase.ShipOrder(new ShipOrderCommand { OrderId = orderId });
+            return await FromResultAndAudit(
+                new BaseResponse<bool> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data },
+                _auditLogUseCase,
+                HttpContext.GetId(),
+                AuditAction.SHIP,
+                AuditEntityType.SALES_ORDER,
+                orderId);
+        }
+
+        [Authorize(Roles = "SALES_STAFF,ADMIN,CUSTOMER")]
         [HttpPost("{orderId:guid}/complete")]
         public async Task<IActionResult> CompleteOrder(Guid orderId)
         {
-            var result = await _orderUseCase.CompleteOrder(new CompleteOrderCommand { OrderId = orderId });
+            var result = await _orderUseCase.CompleteOrder(new CompleteOrderCommand
+            {
+                OrderId = orderId,
+                UserId  = HttpContext.GetId(),
+                Role    = HttpContext.GetRole()
+            });
             return await FromResultAndAudit(
                 new BaseResponse<bool> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data },
                 _auditLogUseCase,

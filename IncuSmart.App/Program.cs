@@ -127,6 +127,13 @@ builder.Services
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// SignalR (real-time push to UI)
+builder.Services.AddSignalR();
+
+// Wire SignalR implementation of IDeviceNotifier (defined in Core, used by MqttBackgroundService in Infra)
+builder.Services.AddSingleton<IncuSmart.Core.Ports.Outbound.IDeviceNotifier,
+                               IncuSmart.API.Services.SignalRDeviceNotifier>();
+
 var app = builder.Build();
 
 if (builder.Configuration.GetValue<bool>("Database:RunCodeFirst"))
@@ -144,5 +151,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<IncuSmart.API.Hubs.IncubatorHub>("/hubs/incubator");
 
 app.Run();

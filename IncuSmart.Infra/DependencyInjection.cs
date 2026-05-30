@@ -79,6 +79,14 @@
         services.AddSingleton<ISMSService, SMSService>();
         services.AddHostedService<PayOSWebhookRegistrationHostedService>();
 
+        // MQTT
+        services.Configure<MqttOptions>(options =>
+            config.GetSection(MqttOptions.SectionName).Bind(options));
+        services.AddSingleton<MqttClientManager>();
+        services.AddScoped<IMqttPublisher, MqttPublisher>();
+        services.AddScoped<IDeviceCommandUseCase, DeviceCommandUseCase>();
+        services.AddHostedService<MqttBackgroundService>();
+
         return services;
     }
 }

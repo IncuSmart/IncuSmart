@@ -7,5 +7,7 @@ namespace IncuSmart.Core.Ports.Outbound
     {
         Task<Masterboard?> FindById(Guid id);
         Task<Masterboard?> FindByIncubatorId(Guid incubatorId);
+        Task<Masterboard?> FindByMacAddress(string macAddress);
+        Task UpdateLastSeenAt(Guid id, DateTime lastSeenAt);
     }
 }

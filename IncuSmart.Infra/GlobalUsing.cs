@@ -13,6 +13,7 @@ global using IncuSmart.Infra.Persistences;
 global using IncuSmart.Infra.Persistences.Entities;
 global using IncuSmart.Infra.Persistences.Entities.Base;
 global using IncuSmart.Infra.Persistences.Repositories;
+global using IncuSmart.Infra.Mqtt;
 global using IncuSmart.Infra.Services;
 global using Mapster;
 global using Microsoft.EntityFrameworkCore;

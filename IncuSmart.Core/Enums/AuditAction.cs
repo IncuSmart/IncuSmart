@@ -10,6 +10,7 @@ namespace IncuSmart.Core.Enums
         RESET_PASSWORD,
         UPDATE_CONFIG,
         ASSIGN_INCUBATOR,
+        SHIP,
         COMPLETE,
         CLAIM_GUEST_ORDER,
         ASSIGN,
