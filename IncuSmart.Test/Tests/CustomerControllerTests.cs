@@ -17,20 +17,33 @@ namespace IncuSmart.Test.Tests
         private readonly Mock<ICustomerRepository> _customerRepo    = new();
         private readonly CustomerController        _controller;
 
+        private static readonly Guid SampleCustomerId = Guid.NewGuid();
+
+        private static readonly CustomerDetailResponse SampleCustomerDetail = new()
+        {
+            Id             = SampleCustomerId,
+            UserId         = ControllerTestBase.CustomerId,
+            FullName       = "Nguyễn Văn A",
+            Phone          = "0901234567",
+            UserStatus     = "ACTIVE",
+            CustomerStatus = "ACTIVE",
+            Role           = "CUSTOMER"
+        };
+
         public CustomerControllerTests()
         {
             _controller = new CustomerController(_customerUseCase.Object, _customerRepo.Object);
         }
 
-        // ─── List ─────────────────────────────────────────────────────────────────────
+        // ─── F01: List ────────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F01-TC01: Lấy danh sách không lọc → 200
         public async Task List_NoFilter_Returns200()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
             var paged = new PagedResult<CustomerSummaryResponse>
             {
-                Items      = [new CustomerSummaryResponse { Id = Guid.NewGuid(), FullName = "Khách A", Phone = "090", UserStatus = "ACTIVE", CustomerStatus = "ACTIVE", Role = "CUSTOMER" }],
+                Items      = [new CustomerSummaryResponse { Id = SampleCustomerId, FullName = "Nguyễn Văn A", Phone = "0901234567", UserStatus = "ACTIVE", CustomerStatus = "ACTIVE", Role = "CUSTOMER" }],
                 Page       = 1,
                 PageSize   = 10,
                 TotalItems = 1,
@@ -44,7 +57,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC02: Lọc theo trạng thái ACTIVE → 200
         public async Task List_FilterByStatus_Returns200()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
@@ -57,23 +70,21 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        // ─── GetById ──────────────────────────────────────────────────────────────────
+        // ─── F02: GetById ─────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F02-TC01: Lấy chi tiết khách hàng tồn tại → 200
         public async Task GetById_ExistingCustomer_Returns200()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
-            var customerId = Guid.NewGuid();
-            var detail     = new CustomerDetailResponse { Id = customerId, FullName = "Khách B", Phone = "090", UserStatus = "ACTIVE", CustomerStatus = "ACTIVE", Role = "CUSTOMER" };
-            _customerUseCase.Setup(x => x.GetById(customerId))
-                .ReturnsAsync(ControllerTestBase.OkResult<CustomerDetailResponse?>(detail));
+            _customerUseCase.Setup(x => x.GetById(SampleCustomerId))
+                .ReturnsAsync(ControllerTestBase.OkResult<CustomerDetailResponse?>(SampleCustomerDetail));
 
-            var result = await _controller.GetById(customerId);
+            var result = await _controller.GetById(SampleCustomerId);
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC02: Khách hàng không tồn tại → 404
         public async Task GetById_NotFound_Returns404()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
@@ -85,37 +96,35 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── GetMe ────────────────────────────────────────────────────────────────────
+        // ─── F03: GetMe ───────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F03-TC01: Lấy thông tin cá nhân của customer đã xác thực → 200
         public async Task GetMe_AuthenticatedCustomer_Returns200()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.CustomerId, "CUSTOMER");
-            var detail = new CustomerDetailResponse { Id = Guid.NewGuid(), UserId = ControllerTestBase.CustomerId, FullName = "Khách C", Phone = "090", UserStatus = "ACTIVE", CustomerStatus = "ACTIVE", Role = "CUSTOMER" };
             _customerUseCase.Setup(x => x.GetByUserId(ControllerTestBase.CustomerId))
-                .ReturnsAsync(ControllerTestBase.OkResult<CustomerDetailResponse?>(detail));
+                .ReturnsAsync(ControllerTestBase.OkResult<CustomerDetailResponse?>(SampleCustomerDetail));
 
             var result = await _controller.GetMe();
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        // ─── GetOrders ────────────────────────────────────────────────────────────────
+        // ─── F04: GetOrders ───────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F04-TC01: Lấy đơn hàng của khách hàng tồn tại → 200
         public async Task GetOrders_ExistingCustomer_Returns200()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
-            var customerId = Guid.NewGuid();
-            _customerUseCase.Setup(x => x.GetOrders(customerId))
+            _customerUseCase.Setup(x => x.GetOrders(SampleCustomerId))
                 .ReturnsAsync(ControllerTestBase.OkResult<List<SalesOrder>>([]));
 
-            var result = await _controller.GetOrders(customerId);
+            var result = await _controller.GetOrders(SampleCustomerId);
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F04-TC02: Khách hàng không tồn tại → 404
         public async Task GetOrders_CustomerNotFound_Returns404()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
@@ -127,58 +136,57 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── Update (Admin/Sales) ─────────────────────────────────────────────────────
+        // ─── F05: Update ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F05-TC01: Cập nhật thông tin hợp lệ → 200
         public async Task Update_ValidRequest_Returns200()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
-            var customerId = Guid.NewGuid();
             _customerUseCase.Setup(x => x.UpdateProfile(It.IsAny<IncuSmart.Core.Commands.UpdateCustomerProfileCommand>()))
                 .ReturnsAsync(ControllerTestBase.OkResult(true));
 
-            var result = await _controller.Update(customerId, new UpdateCustomerProfileRequest { Address = "123 Đường ABC" });
+            var result = await _controller.Update(SampleCustomerId, new UpdateCustomerProfileRequest { Address = "123 Đường ABC, Quận 1, TP.HCM" });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F05-TC02: Khách hàng không tồn tại → 404
         public async Task Update_CustomerNotFound_Returns404()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
             _customerUseCase.Setup(x => x.UpdateProfile(It.IsAny<IncuSmart.Core.Commands.UpdateCustomerProfileCommand>()))
                 .ReturnsAsync(ControllerTestBase.NotFoundResult<bool>("Không tìm thấy khách hàng"));
 
-            var result = await _controller.Update(Guid.NewGuid(), new UpdateCustomerProfileRequest { Address = "Địa chỉ" });
+            var result = await _controller.Update(Guid.NewGuid(), new UpdateCustomerProfileRequest { Address = "Địa chỉ mới" });
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── UpdateMe ─────────────────────────────────────────────────────────────────
+        // ─── F06: UpdateMe ────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F06-TC01: Customer cập nhật hồ sơ cá nhân → 200
         public async Task UpdateMe_CustomerFound_Returns200()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.CustomerId, "CUSTOMER");
-            var customer = new Customer { Id = Guid.NewGuid(), UserId = ControllerTestBase.CustomerId, Status = IncuSmart.Core.Enums.BaseStatus.ACTIVE };
+            var customer = new Customer { Id = SampleCustomerId, UserId = ControllerTestBase.CustomerId, Status = IncuSmart.Core.Enums.BaseStatus.ACTIVE };
             _customerRepo.Setup(x => x.FindByUserId(ControllerTestBase.CustomerId))
                 .ReturnsAsync(customer);
             _customerUseCase.Setup(x => x.UpdateProfile(It.IsAny<IncuSmart.Core.Commands.UpdateCustomerProfileCommand>()))
                 .ReturnsAsync(ControllerTestBase.OkResult(true));
 
-            var result = await _controller.UpdateMe(new UpdateCustomerProfileRequest { Address = "456 Đường DEF" });
+            var result = await _controller.UpdateMe(new UpdateCustomerProfileRequest { Address = "456 Đường DEF, Quận 3, TP.HCM" });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F06-TC02: Customer profile chưa được tạo → 404
         public async Task UpdateMe_CustomerNotFound_Returns404()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.CustomerId, "CUSTOMER");
             _customerRepo.Setup(x => x.FindByUserId(ControllerTestBase.CustomerId))
                 .ReturnsAsync((Customer?)null);
 
-            var result = await _controller.UpdateMe(new UpdateCustomerProfileRequest { Address = "Địa chỉ" });
+            var result = await _controller.UpdateMe(new UpdateCustomerProfileRequest { Address = "Địa chỉ mới" });
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }

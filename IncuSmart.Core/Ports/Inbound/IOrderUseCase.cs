@@ -13,6 +13,8 @@
         Task<ResultModel<bool>> CancelOrder(CancelOrderCommand command);
         Task<ResultModel<SalesOrderDetailResponse?>> GetById(Guid id, Guid? currentUserId, string role);
         Task<ResultModel<OrderPaymentStatusResponse?>> GetPaymentStatus(Guid id, Guid? currentUserId, string role);
+        Task<ResultModel<CreateOrderResponse?>> RefreshPaymentLink(Guid id, Guid? currentUserId, string role);
+        Task<ResultModel<CreateOrderResponse?>> RefreshGuestPaymentLink(RefreshGuestPaymentLinkCommand command);
         Task<ResultModel<PagedResult<SalesOrder>>> List(string? status, Guid? customerId, Guid? currentUserId, string role, int page, int pageSize);
     }
 }

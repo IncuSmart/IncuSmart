@@ -734,73 +734,150 @@ namespace IncuSmart.Core.Usecases
             });
         }
 
+        public async Task<ResultModel<CreateOrderResponse?>> RefreshPaymentLink(Guid id, Guid? currentUserId, string role)
+        {
+            var order = await _salesOrderRepository.FindById(id);
+            if (order == null)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("404", CommonConst.OrderNotFound, null);
+
+            if (role == UserRole.CUSTOMER.ToString())
+            {
+                if (!currentUserId.HasValue)
+                    return ResultModelUtils.FillResult<CreateOrderResponse?>("401", CommonConst.Unauthorized, null);
+
+                var customer = await _customerRepository.FindByUserId(currentUserId.Value);
+                if (customer == null || order.CustomerId != customer.Id)
+                    return ResultModelUtils.FillResult<CreateOrderResponse?>("403", CommonConst.AccessDenied, null);
+            }
+
+            // Chỉ đơn hàng đang chờ thanh toán mới được tạo lại link
+            if (order.PaymentStatus != PaymentStatus.PENDING)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.OrderPaymentLinkCannotBeRefreshed, null);
+
+            // Link còn hiệu lực thì trả về luôn, không cần gọi lại payOS
+            if (order.PaymentLinkExpiredAt.HasValue && order.PaymentLinkExpiredAt.Value > DateTime.UtcNow)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.PaymentLinkStillValid, ToCreateOrderResponse(order));
+
+            try
+            {
+                await RegeneratePaymentLink(order, currentUserId?.ToString() ?? CommonConst.SystemActor);
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.RefreshPaymentLinkSuccessfully, ToCreateOrderResponse(order));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error refreshing payment link for order {OrderId}", order.Id);
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("500", e.Message, null);
+            }
+        }
+
+        public async Task<ResultModel<CreateOrderResponse?>> RefreshGuestPaymentLink(RefreshGuestPaymentLinkCommand command)
+        {
+            var order = await _salesOrderRepository.FindByOrderCode(command.OrderCode);
+            if (order == null)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("404", CommonConst.OrderNotFound, null);
+
+            // Chỉ đơn của khách vãng lai (chưa thuộc về customer nào)
+            if (order.CustomerId.HasValue)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.OrderPaymentLinkCannotBeRefreshed, null);
+
+            var guestOrderInfo = await _guestOrderInfoRepository.FindByOrderId(order.Id);
+            if (guestOrderInfo == null)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("404", CommonConst.GuestOrderInformationNotFound, null);
+
+            if (!PasswordUtil.VerifyPassword(command.VerificationPass, guestOrderInfo.VerificationPassHash))
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.InvalidVerificationPass, null);
+
+            if (order.PaymentStatus != PaymentStatus.PENDING)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.OrderPaymentLinkCannotBeRefreshed, null);
+
+            if (order.PaymentLinkExpiredAt.HasValue && order.PaymentLinkExpiredAt.Value > DateTime.UtcNow)
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.PaymentLinkStillValid, ToCreateOrderResponse(order));
+
+            try
+            {
+                await RegeneratePaymentLink(order, CommonConst.GuestActor);
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.RefreshPaymentLinkSuccessfully, ToCreateOrderResponse(order));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error refreshing guest payment link for order {OrderCode}", command.OrderCode);
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("500", e.Message, null);
+            }
+        }
+
         private async Task RefreshPaymentLinkAsync(SalesOrder order, Guid? currentUserId)
         {
             try
             {
-                string buyerName = string.Empty, buyerPhone = string.Empty;
-                string? buyerEmail = null, buyerAddress = null;
-
-                if (order.CustomerId.HasValue)
-                {
-                    var customer = await _customerRepository.FindById(order.CustomerId.Value);
-                    if (customer != null)
-                    {
-                        var user = await _userRepository.FindById(customer.UserId);
-                        buyerName    = user?.FullName ?? string.Empty;
-                        buyerEmail   = user?.Email;
-                        buyerPhone   = user?.Phone ?? string.Empty;
-                        buyerAddress = customer.Address;
-                    }
-                }
-                else
-                {
-                    var guestInfo = await _guestOrderInfoRepository.FindByOrderId(order.Id);
-                    buyerName  = guestInfo?.FullName ?? string.Empty;
-                    buyerEmail = guestInfo?.Email;
-                    buyerPhone = guestInfo?.Phone ?? string.Empty;
-                }
-
-                var orderItems = await _salesOrderItemRepository.FindByOrderId(order.Id);
-                var modelIds   = orderItems.Select(x => x.IncubatorModelId).Distinct().ToList();
-                var models     = await _incubatorModelRepository.FindByIds(modelIds);
-                var modelsById = models.ToDictionary(x => x.Id);
-
-                var paymentItems = orderItems
-                    .GroupBy(x => x.IncubatorModelId)
-                    .Select(g => new PaymentItemRequest
-                    {
-                        Name     = modelsById.TryGetValue(g.Key, out var m) ? m.Name : g.Key.ToString(),
-                        Quantity = g.Count(),
-                        Price    = g.First().UnitPrice
-                    })
-                    .ToList();
-
-                var newPaymentOrderCode  = GeneratePaymentOrderCode();
-                order.PaymentOrderCode   = newPaymentOrderCode;
-
-                var paymentLink = await _paymentGatewayService.CreatePaymentLink(new PaymentLinkRequest
-                {
-                    OrderCode    = newPaymentOrderCode,
-                    Amount       = order.TotalAmount,
-                    Description  = BuildPaymentDescription(order.OrderCode),
-                    BuyerName    = buyerName,
-                    BuyerEmail   = buyerEmail,
-                    BuyerPhone   = buyerPhone,
-                    BuyerAddress = buyerAddress,
-                    Items        = paymentItems
-                });
-
-                ApplyPaymentLink(order, paymentLink, currentUserId?.ToString() ?? CommonConst.SystemActor);
-
-                await _unitOfWork.BeginAsync();
-                await _salesOrderRepository.Update(order);
-                await _unitOfWork.CommitAsync();
+                await RegeneratePaymentLink(order, currentUserId?.ToString() ?? CommonConst.SystemActor);
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Error refreshing payment link for order {OrderId}", order.Id);
             }
+        }
+
+        // Tạo lại link/QR payOS cho đơn và lưu DB. Throw nếu lỗi để caller quyết định xử lý.
+        private async Task RegeneratePaymentLink(SalesOrder order, string actor)
+        {
+            string buyerName = string.Empty, buyerPhone = string.Empty;
+            string? buyerEmail = null, buyerAddress = null;
+
+            if (order.CustomerId.HasValue)
+            {
+                var customer = await _customerRepository.FindById(order.CustomerId.Value);
+                if (customer != null)
+                {
+                    var user = await _userRepository.FindById(customer.UserId);
+                    buyerName    = user?.FullName ?? string.Empty;
+                    buyerEmail   = user?.Email;
+                    buyerPhone   = user?.Phone ?? string.Empty;
+                    buyerAddress = customer.Address;
+                }
+            }
+            else
+            {
+                var guestInfo = await _guestOrderInfoRepository.FindByOrderId(order.Id);
+                buyerName  = guestInfo?.FullName ?? string.Empty;
+                buyerEmail = guestInfo?.Email;
+                buyerPhone = guestInfo?.Phone ?? string.Empty;
+            }
+
+            var orderItems = await _salesOrderItemRepository.FindByOrderId(order.Id);
+            var modelIds   = orderItems.Select(x => x.IncubatorModelId).Distinct().ToList();
+            var models     = await _incubatorModelRepository.FindByIds(modelIds);
+            var modelsById = models.ToDictionary(x => x.Id);
+
+            var paymentItems = orderItems
+                .GroupBy(x => x.IncubatorModelId)
+                .Select(g => new PaymentItemRequest
+                {
+                    Name     = modelsById.TryGetValue(g.Key, out var m) ? m.Name : g.Key.ToString(),
+                    Quantity = g.Count(),
+                    Price    = g.First().UnitPrice
+                })
+                .ToList();
+
+            var newPaymentOrderCode  = GeneratePaymentOrderCode();
+            order.PaymentOrderCode   = newPaymentOrderCode;
+
+            var paymentLink = await _paymentGatewayService.CreatePaymentLink(new PaymentLinkRequest
+            {
+                OrderCode    = newPaymentOrderCode,
+                Amount       = order.TotalAmount,
+                Description  = BuildPaymentDescription(order.OrderCode),
+                BuyerName    = buyerName,
+                BuyerEmail   = buyerEmail,
+                BuyerPhone   = buyerPhone,
+                BuyerAddress = buyerAddress,
+                Items        = paymentItems
+            });
+
+            ApplyPaymentLink(order, paymentLink, actor);
+
+            await _unitOfWork.BeginAsync();
+            await _salesOrderRepository.Update(order);
+            await _unitOfWork.CommitAsync();
         }
 
         public async Task<ResultModel<OrderPaymentStatusResponse?>> GetPaymentStatus(Guid id, Guid? currentUserId, string role)

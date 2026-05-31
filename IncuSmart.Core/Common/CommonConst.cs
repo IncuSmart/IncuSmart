@@ -56,6 +56,9 @@ namespace IncuSmart.Core.Common
         public const string ClaimGuestOrderSuccessfully = "Nhận đơn hàng khách vãng lai thành công";
         public const string CancelOrderSuccessfully = "Hủy đơn hàng thành công";
         public const string CreatePaymentLinkSuccessfully = "Tạo link thanh toán thành công";
+        public const string RefreshPaymentLinkSuccessfully = "Tạo lại link thanh toán thành công";
+        public const string PaymentLinkStillValid = "Link thanh toán vẫn còn hiệu lực";
+        public const string OrderPaymentLinkCannotBeRefreshed = "Không thể tạo lại link thanh toán cho đơn hàng này";
         public const string PaymentWebhookProcessedSuccessfully = "Xử lý webhook thanh toán thành công";
         public const string OrderCannotBeCancelled = "Đơn hàng đã hoàn tất hoặc đã hủy, không thể hủy";
         public const string OrderCannotBeUpdated = "Đơn hàng không thể được cập nhật";

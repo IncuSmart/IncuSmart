@@ -5,6 +5,7 @@ using IncuSmart.Core.Domains;
 using IncuSmart.Core.Ports.Inbound;
 using IncuSmart.Core.Responses;
 using IncuSmart.Test.Helpers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
@@ -15,7 +16,14 @@ namespace IncuSmart.Test.Tests
         private readonly Mock<IHatchingSeasonUseCase> _seasonUseCase = new();
         private readonly HatchingSeasonController     _controller;
 
-        private static readonly Guid SeasonId = Guid.NewGuid();
+        private static readonly Guid SeasonId    = Guid.NewGuid();
+        private static readonly Guid IncubatorId = Guid.NewGuid();
+
+        private static readonly HatchingSeasonDetailResponse SampleSeasonDetail = new()
+        {
+            Season  = new HatchingSeason { Id = SeasonId, EggType = "Gà", Status = IncuSmart.Core.Enums.HatchingSeasonStatus.ACTIVE },
+            Batches = []
+        };
 
         public HatchingSeasonControllerTests()
         {
@@ -23,9 +31,9 @@ namespace IncuSmart.Test.Tests
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
         }
 
-        // ─── Create ───────────────────────────────────────────────────────────────────
+        // ─── F01: Create ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F01-TC01: Tạo mùa ấp mới hợp lệ → 200
         public async Task Create_ValidRequest_Returns200()
         {
             _seasonUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateHatchingSeasonCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -33,8 +41,8 @@ namespace IncuSmart.Test.Tests
 
             var result = await _controller.Create(new CreateHatchingSeasonRequest
             {
-                IncubatorId = Guid.NewGuid(),
-                EggType     = "Vịt",
+                IncubatorId = IncubatorId,
+                EggType     = "Gà",
                 StartDate   = DateOnly.FromDateTime(DateTime.UtcNow),
                 TemplateId  = null
             });
@@ -42,7 +50,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC02: Máy ấp không tồn tại → 404
         public async Task Create_IncubatorNotFound_Returns404()
         {
             _seasonUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateHatchingSeasonCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -51,45 +59,45 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateHatchingSeasonRequest
             {
                 IncubatorId = Guid.NewGuid(),
-                EggType     = "Gà",
+                EggType     = "Vịt",
                 StartDate   = DateOnly.FromDateTime(DateTime.UtcNow)
             });
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC03: Customer không có quyền tạo mùa ấp trên máy của người khác → 403
         public async Task Create_IncubatorForbidden_Returns403()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.CustomerId, "CUSTOMER");
             _seasonUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateHatchingSeasonCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
-                .ReturnsAsync(new IncuSmart.Core.ResultModel<Guid?> { StatusCode = "403", Message = "Không có quyền" });
+                .ReturnsAsync(ControllerTestBase.ForbiddenResult<Guid?>("Không có quyền"));
 
             var result = await _controller.Create(new CreateHatchingSeasonRequest
             {
-                IncubatorId = Guid.NewGuid(),
+                IncubatorId = IncubatorId,
                 EggType     = "Gà",
                 StartDate   = DateOnly.FromDateTime(DateTime.UtcNow)
             });
 
-            result.Should().BeOfType<ObjectResult>().Which.StatusCode.Should().Be(403);
+            var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+            objectResult.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
         }
 
-        // ─── GetById ──────────────────────────────────────────────────────────────────
+        // ─── F02: GetById ─────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F02-TC01: Lấy chi tiết mùa ấp tồn tại → 200
         public async Task GetById_ExistingSeason_Returns200()
         {
-            var season = new HatchingSeasonDetailResponse { Season = new HatchingSeason { Id = SeasonId, EggType = "Gà", Status = IncuSmart.Core.Enums.HatchingSeasonStatus.ACTIVE }, Batches = [] };
             _seasonUseCase.Setup(x => x.GetById(SeasonId, It.IsAny<Guid?>(), "ADMIN"))
-                .ReturnsAsync(ControllerTestBase.OkResult<HatchingSeasonDetailResponse?>(season));
+                .ReturnsAsync(ControllerTestBase.OkResult<HatchingSeasonDetailResponse?>(SampleSeasonDetail));
 
             var result = await _controller.GetById(SeasonId);
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC02: Mùa ấp không tồn tại → 404
         public async Task GetById_NotFound_Returns404()
         {
             _seasonUseCase.Setup(x => x.GetById(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -100,9 +108,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── List ─────────────────────────────────────────────────────────────────────
+        // ─── F03: List ────────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F03-TC01: Lấy danh sách không lọc → 200
         public async Task List_NoFilter_Returns200()
         {
             var paged = new PagedResult<HatchingSeason> { Items = [], Page = 1, PageSize = 10, TotalItems = 0, TotalPages = 0 };
@@ -114,33 +122,32 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F03-TC02: Lọc theo incubatorId → 200
         public async Task List_FilterByIncubatorId_Returns200()
         {
-            var incubatorId = Guid.NewGuid();
-            var paged       = new PagedResult<HatchingSeason> { Items = [], Page = 1, PageSize = 10, TotalItems = 0, TotalPages = 0 };
-            _seasonUseCase.Setup(x => x.List(incubatorId, null, null, It.IsAny<Guid?>(), "ADMIN", 1, 10))
+            var paged = new PagedResult<HatchingSeason> { Items = [], Page = 1, PageSize = 10, TotalItems = 0, TotalPages = 0 };
+            _seasonUseCase.Setup(x => x.List(IncubatorId, null, null, It.IsAny<Guid?>(), "ADMIN", 1, 10))
                 .ReturnsAsync(ControllerTestBase.OkResult(paged));
 
-            var result = await _controller.List(incubatorId, null, null, new PagingRequest { Page = 1, PageSize = 10 });
+            var result = await _controller.List(IncubatorId, null, null, new PagingRequest { Page = 1, PageSize = 10 });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        // ─── Update ───────────────────────────────────────────────────────────────────
+        // ─── F04: Update ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F04-TC01: Cập nhật mùa ấp hợp lệ → 200
         public async Task Update_ValidRequest_Returns200()
         {
             _seasonUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingSeasonCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
                 .ReturnsAsync(ControllerTestBase.OkResult(true));
 
-            var result = await _controller.Update(SeasonId, new UpdateHatchingSeasonRequest { Notes = "Cập nhật mùa ấp" });
+            var result = await _controller.Update(SeasonId, new UpdateHatchingSeasonRequest { Notes = "Cập nhật ghi chú mùa ấp" });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F04-TC02: Mùa ấp không tồn tại → 404
         public async Task Update_SeasonNotFound_Returns404()
         {
             _seasonUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingSeasonCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -151,9 +158,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── UpdateStatus ─────────────────────────────────────────────────────────────
+        // ─── F05: UpdateStatus ────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F05-TC01: Chuyển trạng thái hợp lệ → 200
         public async Task UpdateStatus_ValidTransition_Returns200()
         {
             _seasonUseCase.Setup(x => x.UpdateStatus(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingSeasonStatusCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -164,7 +171,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F05-TC02: Chuyển trạng thái không hợp lệ → 400
         public async Task UpdateStatus_InvalidTransition_Returns400()
         {
             _seasonUseCase.Setup(x => x.UpdateStatus(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingSeasonStatusCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))

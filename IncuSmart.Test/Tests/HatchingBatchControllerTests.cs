@@ -15,8 +15,14 @@ namespace IncuSmart.Test.Tests
         private readonly Mock<IHatchingBatchUseCase> _batchUseCase = new();
         private readonly HatchingBatchController     _controller;
 
-        private static readonly Guid BatchId    = Guid.NewGuid();
-        private static readonly Guid SeasonId   = Guid.NewGuid();
+        private static readonly Guid BatchId  = Guid.NewGuid();
+        private static readonly Guid SeasonId = Guid.NewGuid();
+
+        private static readonly HatchingBatchDetailResponse SampleBatchDetail = new()
+        {
+            Batch   = new HatchingBatch { Id = BatchId, SeasonId = SeasonId, Name = "Giai đoạn 1", BatchIndex = 1, DayStart = 1, DayEnd = 7, Status = IncuSmart.Core.Enums.BaseStatus.ACTIVE },
+            Configs = []
+        };
 
         public HatchingBatchControllerTests()
         {
@@ -24,9 +30,9 @@ namespace IncuSmart.Test.Tests
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
         }
 
-        // ─── Create ───────────────────────────────────────────────────────────────────
+        // ─── F01: Create ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F01-TC01: Tạo giai đoạn ấp mới hợp lệ → 200
         public async Task Create_ValidRequest_Returns200()
         {
             _batchUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateHatchingBatchCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -45,7 +51,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC02: Mùa ấp không tồn tại → 404
         public async Task Create_SeasonNotFound_Returns404()
         {
             _batchUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateHatchingBatchCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -64,7 +70,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC03: Khoảng ngày bị trùng với giai đoạn khác → 409
         public async Task Create_DuplicateDayRange_Returns409()
         {
             _batchUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateHatchingBatchCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -74,7 +80,7 @@ namespace IncuSmart.Test.Tests
             {
                 SeasonId   = SeasonId,
                 Name       = "Giai đoạn trùng",
-                BatchIndex = 1,
+                BatchIndex = 2,
                 DayStart   = 1,
                 DayEnd     = 7,
                 Configs    = []
@@ -83,24 +89,20 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<ConflictObjectResult>();
         }
 
-        // ─── GetBySeasonId ────────────────────────────────────────────────────────────
+        // ─── F02: GetBySeasonId ───────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F02-TC01: Lấy danh sách giai đoạn của mùa ấp tồn tại → 200
         public async Task GetBySeasonId_ExistingSeason_Returns200()
         {
-            var batches = new List<HatchingBatchDetailResponse>
-            {
-                new() { Batch = new HatchingBatch { Id = BatchId, SeasonId = SeasonId, Name = "Giai đoạn 1", BatchIndex = 1, DayStart = 1, DayEnd = 7, Status = IncuSmart.Core.Enums.BaseStatus.ACTIVE }, Configs = [] }
-            };
             _batchUseCase.Setup(x => x.GetBySeasonId(SeasonId, It.IsAny<Guid?>(), "ADMIN"))
-                .ReturnsAsync(ControllerTestBase.OkResult<List<HatchingBatchDetailResponse>>(batches));
+                .ReturnsAsync(ControllerTestBase.OkResult<List<HatchingBatchDetailResponse>>([SampleBatchDetail]));
 
             var result = await _controller.GetBySeasonId(SeasonId);
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC02: Mùa ấp không tồn tại → 404
         public async Task GetBySeasonId_SeasonNotFound_Returns404()
         {
             _batchUseCase.Setup(x => x.GetBySeasonId(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -111,9 +113,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── Update ───────────────────────────────────────────────────────────────────
+        // ─── F03: Update ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F03-TC01: Cập nhật giai đoạn ấp hợp lệ → 200
         public async Task Update_ValidRequest_Returns200()
         {
             _batchUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingBatchCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -121,7 +123,7 @@ namespace IncuSmart.Test.Tests
 
             var result = await _controller.Update(BatchId, new UpdateHatchingBatchRequest
             {
-                Name     = "Giai đoạn 1 (updated)",
+                Name     = "Giai đoạn 1 (cập nhật)",
                 DayStart = 1,
                 DayEnd   = 8,
                 Configs  = []
@@ -130,7 +132,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F03-TC02: Giai đoạn ấp không tồn tại → 404
         public async Task Update_BatchNotFound_Returns404()
         {
             _batchUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingBatchCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -141,9 +143,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── Delete ───────────────────────────────────────────────────────────────────
+        // ─── F04: Delete ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F04-TC01: Xóa giai đoạn ấp tồn tại → 200
         public async Task Delete_ExistingBatch_Returns200()
         {
             _batchUseCase.Setup(x => x.Delete(BatchId, It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -154,7 +156,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F04-TC02: Giai đoạn ấp không tồn tại → 404
         public async Task Delete_BatchNotFound_Returns404()
         {
             _batchUseCase.Setup(x => x.Delete(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>()))

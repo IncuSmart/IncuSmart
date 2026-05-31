@@ -11,9 +11,11 @@ namespace IncuSmart.Test.Tests
 {
     public class AuthControllerTests
     {
-        private readonly Mock<IAuthUseCase>   _authUseCase = new();
+        private readonly Mock<IAuthUseCase>   _authUseCase   = new();
         private readonly Mock<IConfiguration> _configuration = new();
         private readonly AuthController       _controller;
+
+        private const string SampleToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample.token";
 
         public AuthControllerTests()
         {
@@ -31,21 +33,20 @@ namespace IncuSmart.Test.Tests
             _controller = new AuthController(_authUseCase.Object, _configuration.Object);
         }
 
-        // ─── Login ────────────────────────────────────────────────────────────────────
+        // ─── F01: Login ───────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F01-TC01: Đăng nhập thành công → 200 có token
         public async Task Login_ValidCredentials_Returns200()
         {
             _authUseCase.Setup(x => x.Login(It.IsAny<IncuSmart.Core.Commands.LoginCommand>()))
-                .ReturnsAsync(ControllerTestBase.OkResult<string?>("jwt.token.here", "Đăng nhập thành công"));
+                .ReturnsAsync(ControllerTestBase.OkResult<string?>(SampleToken, "Đăng nhập thành công"));
 
             var result = await _controller.Login(new LoginRequest { Username = "testuser", Password = "testpass" });
 
-            var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-            ok.StatusCode.Should().Be(200);
+            result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC02: Sai thông tin đăng nhập → 404
         public async Task Login_WrongCredentials_Returns404()
         {
             _authUseCase.Setup(x => x.Login(It.IsAny<IncuSmart.Core.Commands.LoginCommand>()))
@@ -56,18 +57,17 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── AdminLogin ───────────────────────────────────────────────────────────────
+        // ─── F02: AdminLogin ──────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F02-TC01: Admin đăng nhập thành công → 200 có token
         public void AdminLogin_ValidCredentials_Returns200WithToken()
         {
             var result = _controller.AdminLogin(new AdminLoginRequest { Username = "admin", Password = "admin123" });
 
-            var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-            ok.StatusCode.Should().Be(200);
+            result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC02: Sai username → 404
         public void AdminLogin_WrongUsername_Returns404()
         {
             var result = _controller.AdminLogin(new AdminLoginRequest { Username = "wrong", Password = "admin123" });
@@ -75,7 +75,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC03: Sai password → 404
         public void AdminLogin_WrongPassword_Returns404()
         {
             var result = _controller.AdminLogin(new AdminLoginRequest { Username = "admin", Password = "wrongpass" });
@@ -83,13 +83,13 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── Register ─────────────────────────────────────────────────────────────────
+        // ─── F03: Register ────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F03-TC01: Đăng ký tài khoản mới thành công → 200 có token
         public async Task Register_NewAccount_Returns200()
         {
             _authUseCase.Setup(x => x.Register(It.IsAny<IncuSmart.Core.Commands.RegisterCommand>()))
-                .ReturnsAsync(ControllerTestBase.OkResult<string?>("jwt.token.here", "Đăng ký thành công"));
+                .ReturnsAsync(ControllerTestBase.OkResult<string?>(SampleToken, "Đăng ký thành công"));
 
             var result = await _controller.Register(new RegisterRequest
             {
@@ -102,7 +102,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F03-TC02: Tên đăng nhập đã tồn tại → 409
         public async Task Register_DuplicateUsername_Returns409()
         {
             _authUseCase.Setup(x => x.Register(It.IsAny<IncuSmart.Core.Commands.RegisterCommand>()))

@@ -16,7 +16,14 @@ namespace IncuSmart.Test.Tests
         private readonly Mock<IAuditLogUseCase>          _auditLogUseCase = new();
         private readonly MaintenanceTicketController     _controller;
 
-        private static readonly Guid TicketId = Guid.NewGuid();
+        private static readonly Guid TicketId    = Guid.NewGuid();
+        private static readonly Guid IncubatorId = Guid.NewGuid();
+
+        private static readonly MaintenanceTicketDetailResponse SampleTicketDetail = new()
+        {
+            Ticket = new MaintenanceTicket { Id = TicketId, IssueDescription = "Máy bơm bị rò rỉ", IncubatorId = IncubatorId, Status = IncuSmart.Core.Enums.MaintenanceTicketStatus.PENDING },
+            Logs   = []
+        };
 
         public MaintenanceTicketControllerTests()
         {
@@ -27,9 +34,9 @@ namespace IncuSmart.Test.Tests
                 .ReturnsAsync(ControllerTestBase.OkResult<Guid?>(Guid.NewGuid()));
         }
 
-        // ─── Create ───────────────────────────────────────────────────────────────────
+        // ─── F01: Create ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F01-TC01: Tạo ticket bảo trì mới hợp lệ → 200
         public async Task Create_ValidRequest_Returns200()
         {
             _ticketUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateMaintenanceTicketCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -37,14 +44,14 @@ namespace IncuSmart.Test.Tests
 
             var result = await _controller.Create(new CreateMaintenanceTicketRequest
             {
-                IncubatorId      = Guid.NewGuid(),
-                IssueDescription = "Máy bơm bị rò rỉ - Sửa máy bơm"
+                IncubatorId      = IncubatorId,
+                IssueDescription = "Máy bơm bị rò rỉ"
             });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC02: Máy ấp không tồn tại → 404
         public async Task Create_IncubatorNotFound_Returns404()
         {
             _ticketUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateMaintenanceTicketCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -53,31 +60,26 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateMaintenanceTicketRequest
             {
                 IncubatorId      = Guid.NewGuid(),
-                IssueDescription = "Báo hỏng - Mô tả lỗi"
+                IssueDescription = "Mô tả lỗi"
             });
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── GetById ──────────────────────────────────────────────────────────────────
+        // ─── F02: GetById ─────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F02-TC01: Lấy chi tiết ticket tồn tại → 200
         public async Task GetById_ExistingTicket_Returns200()
         {
-            var detail = new MaintenanceTicketDetailResponse
-            {
-                Ticket = new MaintenanceTicket { Id = TicketId, IssueDescription = "Sửa máy", IncubatorId = Guid.NewGuid(), Status = IncuSmart.Core.Enums.MaintenanceTicketStatus.PENDING },
-                Logs   = []
-            };
             _ticketUseCase.Setup(x => x.GetById(TicketId, It.IsAny<Guid?>(), "ADMIN"))
-                .ReturnsAsync(ControllerTestBase.OkResult<MaintenanceTicketDetailResponse?>(detail));
+                .ReturnsAsync(ControllerTestBase.OkResult<MaintenanceTicketDetailResponse?>(SampleTicketDetail));
 
             var result = await _controller.GetById(TicketId);
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC02: Ticket không tồn tại → 404
         public async Task GetById_NotFound_Returns404()
         {
             _ticketUseCase.Setup(x => x.GetById(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -88,9 +90,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── List ─────────────────────────────────────────────────────────────────────
+        // ─── F03: List ────────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F03-TC01: Lấy danh sách không lọc → 200
         public async Task List_NoFilter_Returns200()
         {
             var paged = new PagedResult<MaintenanceTicket> { Items = [], Page = 1, PageSize = 20, TotalItems = 0, TotalPages = 0 };
@@ -102,7 +104,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F03-TC02: Lọc theo trạng thái PENDING → 200
         public async Task List_FilterByStatus_Returns200()
         {
             var paged = new PagedResult<MaintenanceTicket> { Items = [], Page = 1, PageSize = 20, TotalItems = 0, TotalPages = 0 };
@@ -114,9 +116,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        // ─── Assign ───────────────────────────────────────────────────────────────────
+        // ─── F04: Assign ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F04-TC01: Gán kỹ thuật viên hợp lệ → 200
         public async Task Assign_ValidRequest_Returns200()
         {
             _ticketUseCase.Setup(x => x.Assign(It.IsAny<IncuSmart.Core.Commands.AssignMaintenanceTicketCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -127,7 +129,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F04-TC02: Ticket không tồn tại → 404
         public async Task Assign_TicketNotFound_Returns404()
         {
             _ticketUseCase.Setup(x => x.Assign(It.IsAny<IncuSmart.Core.Commands.AssignMaintenanceTicketCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -138,9 +140,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── UpdateStatus ─────────────────────────────────────────────────────────────
+        // ─── F05: UpdateStatus ────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F05-TC01: Chuyển trạng thái PENDING → IN_PROGRESS hợp lệ → 200
         public async Task UpdateStatus_ValidTransition_Returns200()
         {
             _ticketUseCase.Setup(x => x.UpdateStatus(It.IsAny<IncuSmart.Core.Commands.UpdateMaintenanceTicketStatusCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -151,7 +153,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F05-TC02: Chuyển trạng thái không hợp lệ → 400
         public async Task UpdateStatus_InvalidTransition_Returns400()
         {
             _ticketUseCase.Setup(x => x.UpdateStatus(It.IsAny<IncuSmart.Core.Commands.UpdateMaintenanceTicketStatusCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -162,9 +164,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<BadRequestObjectResult>();
         }
 
-        // ─── Cancel ───────────────────────────────────────────────────────────────────
+        // ─── F06: Cancel ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F06-TC01: Hủy ticket bảo trì hợp lệ → 200
         public async Task Cancel_ValidTicket_Returns200()
         {
             _ticketUseCase.Setup(x => x.Cancel(TicketId, It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -175,7 +177,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F06-TC02: Ticket không tồn tại → 404
         public async Task Cancel_TicketNotFound_Returns404()
         {
             _ticketUseCase.Setup(x => x.Cancel(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -186,20 +188,20 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── AddLog ───────────────────────────────────────────────────────────────────
+        // ─── F07: AddLog ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F07-TC01: Thêm log bảo trì hợp lệ → 200
         public async Task AddLog_ValidRequest_Returns200()
         {
             _ticketUseCase.Setup(x => x.AddLog(It.IsAny<IncuSmart.Core.Commands.CreateMaintenanceLogCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
                 .ReturnsAsync(ControllerTestBase.OkResult<Guid?>(Guid.NewGuid()));
 
-            var result = await _controller.AddLog(TicketId, new CreateMaintenanceLogRequest { Description = "Đã thay linh kiện" });
+            var result = await _controller.AddLog(TicketId, new CreateMaintenanceLogRequest { Description = "Đã thay linh kiện máy bơm" });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F07-TC02: Ticket không tồn tại → 404
         public async Task AddLog_TicketNotFound_Returns404()
         {
             _ticketUseCase.Setup(x => x.AddLog(It.IsAny<IncuSmart.Core.Commands.CreateMaintenanceLogCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -210,9 +212,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── GetLogs ──────────────────────────────────────────────────────────────────
+        // ─── F08: GetLogs ─────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F08-TC01: Lấy danh sách log của ticket tồn tại → 200
         public async Task GetLogs_ExistingTicket_Returns200()
         {
             _ticketUseCase.Setup(x => x.GetLogs(TicketId, It.IsAny<Guid?>(), "ADMIN"))
@@ -223,7 +225,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F08-TC02: Ticket không tồn tại → 404
         public async Task GetLogs_TicketNotFound_Returns404()
         {
             _ticketUseCase.Setup(x => x.GetLogs(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>()))

@@ -4,6 +4,7 @@ using IncuSmart.API.Requests;
 using IncuSmart.Core.Domains;
 using IncuSmart.Core.Ports.Inbound;
 using IncuSmart.Test.Helpers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
@@ -15,8 +16,18 @@ namespace IncuSmart.Test.Tests
         private readonly Mock<IAuditLogUseCase> _auditLogUseCase = new();
         private readonly WarrantyController     _controller;
 
-        private static readonly Guid WarrantyId   = Guid.NewGuid();
-        private static readonly Guid IncubatorId  = Guid.NewGuid();
+        private static readonly Guid WarrantyId  = Guid.NewGuid();
+        private static readonly Guid IncubatorId = Guid.NewGuid();
+
+        private static readonly Warranty SampleWarranty = new()
+        {
+            Id          = WarrantyId,
+            IncubatorId = IncubatorId,
+            StartDate   = DateOnly.FromDateTime(DateTime.UtcNow),
+            EndDate     = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            Notes       = "Bảo hành 12 tháng",
+            Status      = IncuSmart.Core.Enums.BaseStatus.ACTIVE
+        };
 
         public WarrantyControllerTests()
         {
@@ -27,9 +38,9 @@ namespace IncuSmart.Test.Tests
                 .ReturnsAsync(ControllerTestBase.OkResult<Guid?>(Guid.NewGuid()));
         }
 
-        // ─── Create ───────────────────────────────────────────────────────────────────
+        // ─── F01: Create ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F01-TC01: Tạo bảo hành mới hợp lệ → 200
         public async Task Create_ValidRequest_Returns200()
         {
             _warrantyUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateWarrantyCommand>()))
@@ -38,15 +49,15 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateWarrantyRequest
             {
                 IncubatorId = IncubatorId,
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                EndDate   = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
-                Notes     = "Bảo hành 12 tháng"
+                StartDate   = DateOnly.FromDateTime(DateTime.UtcNow),
+                EndDate     = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+                Notes       = "Bảo hành 12 tháng"
             });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC02: Máy ấp không tồn tại → 404
         public async Task Create_IncubatorNotFound_Returns404()
         {
             _warrantyUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateWarrantyCommand>()))
@@ -55,14 +66,14 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateWarrantyRequest
             {
                 IncubatorId = Guid.NewGuid(),
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                EndDate   = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1))
+                StartDate   = DateOnly.FromDateTime(DateTime.UtcNow),
+                EndDate     = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1))
             });
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC03: Máy ấp đã có bảo hành → 409
         public async Task Create_WarrantyAlreadyExists_Returns409()
         {
             _warrantyUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateWarrantyCommand>()))
@@ -71,16 +82,16 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateWarrantyRequest
             {
                 IncubatorId = IncubatorId,
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                EndDate   = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1))
+                StartDate   = DateOnly.FromDateTime(DateTime.UtcNow),
+                EndDate     = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1))
             });
 
             result.Should().BeOfType<ConflictObjectResult>();
         }
 
-        // ─── Update ───────────────────────────────────────────────────────────────────
+        // ─── F02: Update ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F02-TC01: Gia hạn bảo hành hợp lệ → 200
         public async Task Update_ValidRequest_Returns200()
         {
             _warrantyUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateWarrantyCommand>()))
@@ -90,13 +101,13 @@ namespace IncuSmart.Test.Tests
             {
                 StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
                 EndDate   = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(2)),
-                Notes     = "Gia hạn bảo hành"
+                Notes     = "Gia hạn bảo hành thêm 1 năm"
             });
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC02: Bảo hành không tồn tại → 404
         public async Task Update_WarrantyNotFound_Returns404()
         {
             _warrantyUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateWarrantyCommand>()))
@@ -111,21 +122,20 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── GetByIncubatorId ─────────────────────────────────────────────────────────
+        // ─── F03: GetByIncubatorId ────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F03-TC01: Lấy bảo hành của máy ấp tồn tại → 200
         public async Task GetByIncubatorId_ExistingWarranty_Returns200()
         {
-            var warranty = new Warranty { Id = WarrantyId, IncubatorId = IncubatorId, StartDate = DateOnly.FromDateTime(DateTime.UtcNow), EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)), Status = IncuSmart.Core.Enums.BaseStatus.ACTIVE };
             _warrantyUseCase.Setup(x => x.GetByIncubatorId(IncubatorId, It.IsAny<Guid?>(), "ADMIN"))
-                .ReturnsAsync(ControllerTestBase.OkResult<Warranty?>(warranty));
+                .ReturnsAsync(ControllerTestBase.OkResult<Warranty?>(SampleWarranty));
 
             var result = await _controller.GetByIncubatorId(IncubatorId);
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F03-TC02: Máy ấp chưa có bảo hành → 404
         public async Task GetByIncubatorId_NotFound_Returns404()
         {
             _warrantyUseCase.Setup(x => x.GetByIncubatorId(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>()))
@@ -136,16 +146,17 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F03-TC03: Customer xem bảo hành máy của người khác → 403
         public async Task GetByIncubatorId_CustomerOtherMachine_Returns403()
         {
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.CustomerId, "CUSTOMER");
             _warrantyUseCase.Setup(x => x.GetByIncubatorId(It.IsAny<Guid>(), It.IsAny<Guid?>(), "CUSTOMER"))
-                .ReturnsAsync(new IncuSmart.Core.ResultModel<Warranty?> { StatusCode = "403", Message = "Không có quyền xem bảo hành này" });
+                .ReturnsAsync(ControllerTestBase.ForbiddenResult<Warranty?>("Không có quyền xem bảo hành này"));
 
             var result = await _controller.GetByIncubatorId(Guid.NewGuid());
 
-            result.Should().BeOfType<ObjectResult>().Which.StatusCode.Should().Be(403);
+            var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+            objectResult.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
         }
     }
 }
