@@ -5,8 +5,7 @@
         public void Register(TypeAdapterConfig config)
         {
             config.NewConfig<OrderItemRequest, OrderItemCommand>();
-            config.NewConfig<CreateOrderByGuestRequest, CreateOrderByGuestCommand>()
-                .Map(dest => dest.ShippingAddress, src => src.Address);
+            config.NewConfig<CreateOrderByGuestRequest, CreateOrderByGuestCommand>();
             config.NewConfig<CreateOrderByCustomerRequest, CreateOrderByCustomerCommand>();
             config.NewConfig<AssignIncubatorToOrderItemRequest, AssignIncubatorToOrderItemCommand>();
             config.NewConfig<ClaimGuestOrderRequest, ClaimGuestOrderCommand>();
