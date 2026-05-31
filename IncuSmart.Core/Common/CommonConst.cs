@@ -77,7 +77,7 @@ namespace IncuSmart.Core.Common
         public const string OrderHasNoItems = "Đơn hàng không có mặt hàng nào";
         public const string AllSalesOrderItemsMustBeAssignedBeforeCompletion = "Tất cả mặt hàng trong đơn phải được gán trước khi hoàn tất";
         public const string OrderAlreadyClaimed = "Đơn hàng đã được nhận trước đó";
-        public const string OnlyCompletedGuestOrdersCanBeClaimed = "Chỉ có thể nhận đơn hàng khách vãng lai đã hoàn tất";
+        public const string OnlyShippingGuestOrdersCanBeClaimed = "Chỉ có thể nhận đơn hàng khách vãng lai đang được giao";
         public const string GuestOrderNotReadyToBeClaimed = "Đơn hàng khách vãng lai chưa sẵn sàng để nhận";
         public const string InvalidVerificationPass = "Mã xác thực không hợp lệ";
         public const string OrderMissingAssignedIncubators = "Đơn hàng đang thiếu máy ấp đã được gán";
