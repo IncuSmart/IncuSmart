@@ -60,6 +60,12 @@ namespace IncuSmart.Test.Helpers
             => new() { StatusCode = "400", Message = message, Data = default };
 
         /// <summary>
+        /// Tạo ResultModel forbidden (403).
+        /// </summary>
+        public static IncuSmart.Core.ResultModel<T> ForbiddenResult<T>(string message = "Không có quyền")
+            => new() { StatusCode = "403", Message = message, Data = default };
+
+        /// <summary>
         /// Tạo ResultModel internal server error.
         /// </summary>
         public static IncuSmart.Core.ResultModel<T> ErrorResult<T>(string message = "Lỗi hệ thống")

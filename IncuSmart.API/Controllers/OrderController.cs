@@ -167,6 +167,33 @@ namespace IncuSmart.API.Controllers
         }
 
         [Authorize(Roles = "ADMIN,SALES_STAFF,CUSTOMER")]
+        [HttpPost("{id:guid}/payment-link/refresh")]
+        public async Task<IActionResult> RefreshPaymentLink(Guid id)
+        {
+            var userId = HttpContext.GetId();
+            var role = HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
+            var result = await _orderUseCase.RefreshPaymentLink(id, userId, role);
+            return FromResult(new BaseResponse<CreateOrderResponse?>
+            {
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
+        }
+
+        [HttpPost("guest/payment-link/refresh")]
+        public async Task<IActionResult> RefreshGuestPaymentLink([FromBody] RefreshGuestPaymentLinkRequest request)
+        {
+            var result = await _orderUseCase.RefreshGuestPaymentLink(request.Adapt<RefreshGuestPaymentLinkCommand>());
+            return FromResult(new BaseResponse<CreateOrderResponse?>
+            {
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
+        }
+
+        [Authorize(Roles = "ADMIN,SALES_STAFF,CUSTOMER")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {

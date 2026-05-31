@@ -18,6 +18,13 @@ namespace IncuSmart.Test.Tests
 
         private static readonly Guid IncubatorId = Guid.NewGuid();
 
+        private static readonly IncubatorResponse SampleIncubatorResponse = new()
+        {
+            Id           = IncubatorId,
+            SerialNumber = "SN-20260001",
+            Status       = IncuSmart.Core.Enums.IncubatorStatus.ACTIVE
+        };
+
         public IncubatorControllerTests()
         {
             _controller = new IncubatorController(_incubatorUseCase.Object, _auditLogUseCase.Object);
@@ -27,14 +34,13 @@ namespace IncuSmart.Test.Tests
                 .ReturnsAsync(ControllerTestBase.OkResult<Guid?>(Guid.NewGuid()));
         }
 
-        // ─── Create ───────────────────────────────────────────────────────────────────
+        // ─── F01: Create ──────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F01-TC01: Tạo máy ấp mới hợp lệ → 200
         public async Task Create_ValidRequest_Returns200()
         {
-            var ids = new List<Guid> { IncubatorId };
             _incubatorUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateIncubatorCommand>()))
-                .ReturnsAsync(ControllerTestBase.OkResult<List<Guid>>(ids));
+                .ReturnsAsync(ControllerTestBase.OkResult<List<Guid>>([IncubatorId]));
 
             var result = await _controller.Create(new CreateIncubatorRequest
             {
@@ -45,7 +51,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC02: Model không tồn tại → 404
         public async Task Create_ModelNotFound_Returns404()
         {
             _incubatorUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateIncubatorCommand>()))
@@ -60,7 +66,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F01-TC03: Serial number đã tồn tại → 409
         public async Task Create_DuplicateSerialNumber_Returns409()
         {
             _incubatorUseCase.Setup(x => x.Create(It.IsAny<IncuSmart.Core.Commands.CreateIncubatorCommand>()))
@@ -75,14 +81,14 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<ConflictObjectResult>();
         }
 
-        // ─── List ─────────────────────────────────────────────────────────────────────
+        // ─── F02: List ────────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F02-TC01: Admin lấy tất cả máy ấp không lọc → 200
         public async Task List_AdminRole_ReturnsAllIncubators()
         {
             var paged = new PagedResult<IncubatorResponse>
             {
-                Items      = [new IncubatorResponse { Id = IncubatorId, SerialNumber = "SN-001", Status = IncuSmart.Core.Enums.IncubatorStatus.ACTIVE }],
+                Items      = [SampleIncubatorResponse],
                 Page       = 1,
                 PageSize   = 10,
                 TotalItems = 1,
@@ -96,10 +102,10 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F02-TC02: Lọc theo trạng thái ACTIVE → 200
         public async Task List_FilterByStatus_Returns200()
         {
-            var paged = new PagedResult<IncubatorResponse> { Items = [], Page = 1, PageSize = 10, TotalItems = 0, TotalPages = 0 };
+            var paged = new PagedResult<IncubatorResponse> { Items = [SampleIncubatorResponse], Page = 1, PageSize = 10, TotalItems = 1, TotalPages = 1 };
             _incubatorUseCase.Setup(x => x.List(ControllerTestBase.AdminId, "ADMIN", "ACTIVE", null, 1, 10))
                 .ReturnsAsync(ControllerTestBase.OkResult(paged));
 
@@ -108,21 +114,20 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        // ─── GetById ──────────────────────────────────────────────────────────────────
+        // ─── F03: GetById ─────────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F03-TC01: Lấy chi tiết máy ấp tồn tại → 200
         public async Task GetById_ExistingIncubator_Returns200()
         {
-            var incubator = new IncubatorResponse { Id = IncubatorId, SerialNumber = "SN-001", Status = IncuSmart.Core.Enums.IncubatorStatus.ACTIVE };
             _incubatorUseCase.Setup(x => x.GetById(IncubatorId, ControllerTestBase.AdminId, "ADMIN"))
-                .ReturnsAsync(ControllerTestBase.OkResult<IncubatorResponse?>(incubator));
+                .ReturnsAsync(ControllerTestBase.OkResult<IncubatorResponse?>(SampleIncubatorResponse));
 
             var result = await _controller.GetById(IncubatorId);
 
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F03-TC02: Máy ấp không tồn tại → 404
         public async Task GetById_NotFound_Returns404()
         {
             _incubatorUseCase.Setup(x => x.GetById(It.IsAny<Guid>(), It.IsAny<Guid>(), "ADMIN"))
@@ -133,9 +138,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── UpdateConfigInstances ────────────────────────────────────────────────────
+        // ─── F04: UpdateConfigInstances ───────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F04-TC01: Cập nhật config instances hợp lệ → 200
         public async Task UpdateConfigInstances_ValidRequest_Returns200()
         {
             _incubatorUseCase.Setup(x => x.UpdateConfigInstances(It.IsAny<IncuSmart.Core.Commands.UpdateConfigInstancesCommand>()))
@@ -149,7 +154,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F04-TC02: Máy ấp không tồn tại → 404
         public async Task UpdateConfigInstances_IncubatorNotFound_Returns404()
         {
             _incubatorUseCase.Setup(x => x.UpdateConfigInstances(It.IsAny<IncuSmart.Core.Commands.UpdateConfigInstancesCommand>()))
@@ -160,9 +165,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── UpdateStatus ─────────────────────────────────────────────────────────────
+        // ─── F05: UpdateStatus ────────────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F05-TC01: Cập nhật trạng thái hợp lệ → 200
         public async Task UpdateStatus_ValidRequest_Returns200()
         {
             _incubatorUseCase.Setup(x => x.UpdateStatus(IncubatorId, "INACTIVE", It.IsAny<string>()))
@@ -173,7 +178,7 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<OkObjectResult>();
         }
 
-        [Fact]
+        [Fact] // F05-TC02: Máy ấp không tồn tại → 404
         public async Task UpdateStatus_IncubatorNotFound_Returns404()
         {
             _incubatorUseCase.Setup(x => x.UpdateStatus(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -184,9 +189,9 @@ namespace IncuSmart.Test.Tests
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
-        // ─── GetHatchingSeasons ───────────────────────────────────────────────────────
+        // ─── F06: GetHatchingSeasons ──────────────────────────────────────────────────
 
-        [Fact]
+        [Fact] // F06-TC01: Lấy danh sách mùa ấp của máy ấp tồn tại → 200
         public async Task GetHatchingSeasons_ExistingIncubator_Returns200()
         {
             _incubatorUseCase.Setup(x => x.GetHatchingSeasons(IncubatorId, ControllerTestBase.AdminId, "ADMIN", null, null))
