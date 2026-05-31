@@ -524,9 +524,9 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderAlreadyClaimed, false);
             }
 
-            if (order.Status != OrderStatus.COMPLETED)
+            if (order.Status != OrderStatus.SHIPPING)
             {
-                return ResultModelUtils.FillResult<bool>("400", CommonConst.OnlyCompletedGuestOrdersCanBeClaimed, false);
+                return ResultModelUtils.FillResult<bool>("400", CommonConst.OnlyShippingGuestOrdersCanBeClaimed, false);
             }
 
             var guestOrderInfo = await _guestOrderInfoRepository.FindByOrderId(order.Id);
@@ -540,7 +540,7 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderAlreadyClaimed, false);
             }
 
-            if (guestOrderInfo.Status != GuestOrderStatus.VERIFIED)
+            if (guestOrderInfo.Status != GuestOrderStatus.PENDING_VERIFICATION)
             {
                 return ResultModelUtils.FillResult<bool>("400", CommonConst.GuestOrderNotReadyToBeClaimed, false);
             }
