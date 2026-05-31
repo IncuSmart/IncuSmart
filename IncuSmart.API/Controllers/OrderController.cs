@@ -151,7 +151,6 @@ namespace IncuSmart.API.Controllers
             });
         }
 
-        [Authorize(Roles = "ADMIN,SALES_STAFF,CUSTOMER")]
         [HttpGet("{id:guid}/payment-status")]
         public async Task<IActionResult> GetPaymentStatus(Guid id)
         {
