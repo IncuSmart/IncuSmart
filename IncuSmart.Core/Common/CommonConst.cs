@@ -105,6 +105,7 @@ namespace IncuSmart.Core.Common
         public const string UpdateHatchingSeasonStatusSuccessfully = "Cập nhật trạng thái mùa ấp thành công";
         public const string CreateHatchingSeasonTemplateSuccessfully = "Tạo mẫu mùa ấp thành công";
         public const string UpdateHatchingSeasonTemplateSuccessfully = "Cập nhật mẫu mùa ấp thành công";
+        public const string TotalDaysMustBeGreaterThanZero = "Tổng số ngày của template phải lớn hơn 0";
         public const string CreateHatchingBatchSuccessfully = "Tạo giai đoạn ấp thành công";
         public const string UpdateHatchingBatchSuccessfully = "Cập nhật giai đoạn ấp thành công";
         public const string InvalidSeasonStatus = "Trạng thái mùa ấp không hợp lệ";

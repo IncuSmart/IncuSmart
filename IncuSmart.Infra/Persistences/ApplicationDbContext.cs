@@ -68,6 +68,20 @@ namespace IncuSmart.Infra.Persistences
                 .HasOne<IncubatorEntity>()
                 .WithMany()
                 .HasForeignKey(x => x.IncubatorId);
+
+            modelBuilder.Entity<HatchingSeasonTemplateBatchEntity>()
+                .HasOne<HatchingSeasonTemplateEntity>()
+                .WithMany()
+                .HasForeignKey(x => x.TemplateId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            modelBuilder.Entity<HatchingSeasonTemplateBatchConfigEntity>()
+                .HasOne<HatchingSeasonTemplateBatchEntity>()
+                .WithMany()
+                .HasForeignKey(x => x.TemplateBatchId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
         }
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
