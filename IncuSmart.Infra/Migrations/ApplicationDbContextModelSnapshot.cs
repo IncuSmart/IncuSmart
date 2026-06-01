@@ -796,13 +796,9 @@ namespace IncuSmart.Infra.Migrations
                         .HasColumnType("text")
                         .HasColumnName("created_by");
 
-                    b.Property<int>("DayEnd")
+                    b.Property<int>("NumberOfDays")
                         .HasColumnType("integer")
-                        .HasColumnName("day_end");
-
-                    b.Property<int>("DayStart")
-                        .HasColumnType("integer")
-                        .HasColumnName("day_start");
+                        .HasColumnName("number_of_days");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
@@ -2129,6 +2125,26 @@ namespace IncuSmart.Infra.Migrations
                         .HasConstraintName("fk_hatching_seasons_incubators_incubator_id");
 
                     b.Navigation("Incubator");
+                });
+
+            modelBuilder.Entity("IncuSmart.Infra.Persistences.Entities.HatchingSeasonTemplateBatchEntity", b =>
+                {
+                    b.HasOne("IncuSmart.Infra.Persistences.Entities.HatchingSeasonTemplateEntity", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_hatching_season_template_batches_hatching_season_templates_template_id");
+                });
+
+            modelBuilder.Entity("IncuSmart.Infra.Persistences.Entities.HatchingSeasonTemplateBatchConfigEntity", b =>
+                {
+                    b.HasOne("IncuSmart.Infra.Persistences.Entities.HatchingSeasonTemplateBatchEntity", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateBatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_hatching_season_template_batch_configs_hatching_season_template_batches_template_batch_id");
                 });
 
             modelBuilder.Entity("IncuSmart.Infra.Persistences.Entities.IncubatorConfigInstanceEntity", b =>

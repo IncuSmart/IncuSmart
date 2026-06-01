@@ -38,6 +38,12 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<Guid?>("404", CommonConst.CustomerNotFound, null);
             }
 
+            var totalDays = command.Batches.Sum(b => b.NumberOfDays);
+            if (totalDays <= 0)
+            {
+                return ResultModelUtils.FillResult<Guid?>("400", CommonConst.TotalDaysMustBeGreaterThanZero, null);
+            }
+
             await _unitOfWork.BeginAsync();
             try
             {
@@ -47,7 +53,7 @@ namespace IncuSmart.Core.Usecases
                     CustomerId = role == UserRole.CUSTOMER.ToString() ? customerId : null,
                     Name = command.Name,
                     Description = command.Description,
-                    TotalDays = command.TotalDays,
+                    TotalDays = totalDays,
                     EggType = command.EggType,
                     IsActive = true,
                     CreatedByType = role == UserRole.CUSTOMER.ToString() ? UserRole.CUSTOMER.ToString() : UserRole.TECHNICIAN.ToString(),
@@ -56,6 +62,7 @@ namespace IncuSmart.Core.Usecases
                     CreatedBy = currentUserId?.ToString() ?? CommonConst.SystemActor,
                 };
                 await _templateRepo.Add(template);
+                await _unitOfWork.SaveChangesAsync();
 
                 foreach (var batchCmd in command.Batches)
                 {
@@ -65,14 +72,14 @@ namespace IncuSmart.Core.Usecases
                         TemplateId = template.Id,
                         BatchIndex = batchCmd.BatchIndex,
                         Name = batchCmd.Name,
-                        DayStart = batchCmd.DayStart,
-                        DayEnd = batchCmd.DayEnd,
+                        NumberOfDays = batchCmd.NumberOfDays,
                         Notes = batchCmd.Notes,
                         Status = BaseStatus.ACTIVE,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = currentUserId?.ToString() ?? CommonConst.SystemActor,
                     };
                     await _batchRepo.Add(batch);
+                    await _unitOfWork.SaveChangesAsync();
 
                     foreach (var cfgCmd in batchCmd.Configs)
                     {
@@ -162,7 +169,6 @@ namespace IncuSmart.Core.Usecases
             {
                 template.Name = command.Name ?? template.Name;
                 template.Description = command.Description ?? template.Description;
-                template.TotalDays = command.TotalDays ?? template.TotalDays;
                 template.EggType = command.EggType ?? template.EggType;
                 template.IsActive = command.IsActive ?? template.IsActive;
                 template.UpdatedAt = DateTime.UtcNow;
@@ -170,6 +176,15 @@ namespace IncuSmart.Core.Usecases
 
                 if (command.Batches != null)
                 {
+                    var newTotalDays = command.Batches.Sum(b => b.NumberOfDays);
+                    if (newTotalDays <= 0)
+                    {
+                        await _unitOfWork.RollbackAsync();
+                        return ResultModelUtils.FillResult<bool>("400", CommonConst.TotalDaysMustBeGreaterThanZero, false);
+                    }
+
+                    template.TotalDays = newTotalDays;
+
                     var oldBatches = await _batchRepo.FindByTemplateId(command.Id);
                     foreach (var old in oldBatches)
                     {
@@ -185,14 +200,14 @@ namespace IncuSmart.Core.Usecases
                             TemplateId = command.Id,
                             BatchIndex = batchCmd.BatchIndex,
                             Name = batchCmd.Name,
-                            DayStart = batchCmd.DayStart,
-                            DayEnd = batchCmd.DayEnd,
+                            NumberOfDays = batchCmd.NumberOfDays,
                             Notes = batchCmd.Notes,
                             Status = BaseStatus.ACTIVE,
                             CreatedAt = DateTime.UtcNow,
                             CreatedBy = currentUserId?.ToString() ?? CommonConst.SystemActor,
                         };
                         await _batchRepo.Add(batch);
+                        await _unitOfWork.SaveChangesAsync();
 
                         foreach (var cfgCmd in batchCmd.Configs)
                         {

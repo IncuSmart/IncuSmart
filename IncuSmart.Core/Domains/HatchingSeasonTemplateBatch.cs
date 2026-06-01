@@ -11,8 +11,7 @@ namespace IncuSmart.Core.Domains
         public Guid TemplateId { get; set; }
         public int BatchIndex { get; set; }
         public string? Name { get; set; }
-        public int DayStart { get; set; }
-        public int DayEnd { get; set; }
+        public int NumberOfDays { get; set; }
         public string? Notes { get; set; }
     }
 

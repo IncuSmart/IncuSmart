@@ -8,11 +8,9 @@ namespace IncuSmart.API.Requests
         [MaxLength(100, ErrorMessage = "Name không được vượt quá 100 ký tự")]
         public string? Name    { get; set; }
 
-        [Required(ErrorMessage = "DayStart là bắt buộc")]
-        public int     DayStart { get; set; }
-
-        [Required(ErrorMessage = "DayEnd là bắt buộc")]
-        public int     DayEnd   { get; set; }
+        [Required(ErrorMessage = "NumberOfDays là bắt buộc")]
+        [Range(1, 365, ErrorMessage = "NumberOfDays phải từ 1 đến 365")]
+        public int     NumberOfDays { get; set; }
 
         public string? Notes   { get; set; }
 
