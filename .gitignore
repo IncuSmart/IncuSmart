@@ -11,6 +11,8 @@
 *.sln.docstates
 appsettings.json
 appsettings.Development.json
+.env
+**/.env
 
 # Visual Studio
 .vs/

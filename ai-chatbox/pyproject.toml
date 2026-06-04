@@ -1,0 +1,38 @@
+[project]
+name = "incusmart-ai-chatbox"
+version = "0.1.0"
+description = "v1 AI chatbox for IncuSmart with RAG and ML-based recommendations"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "chromadb>=0.5.5",
+  "fastapi>=0.115.0",
+  "joblib>=1.4.2",
+  "numpy>=1.26.4",
+  "pandas>=2.2.2",
+  "pypdf>=4.3.1",
+  "pydantic>=2.8.2",
+  "pydantic-settings>=2.3.4",
+  "python-dotenv>=1.0.1",
+  "python-multipart>=0.0.9",
+  "requests>=2.32.3",
+  "scikit-learn>=1.5.1",
+  "sentence-transformers>=3.0.1",
+  "sqlalchemy>=2.0.31",
+  "streamlit>=1.37.0",
+  "psycopg[binary]>=3.2.1",
+  "uvicorn>=0.30.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.2",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
