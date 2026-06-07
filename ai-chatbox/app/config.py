@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8001
     streamlit_port: int = 8501
+    cors_origins: str = "*"
 
     postgres_dsn: str = Field(
         default="postgresql+psycopg://postgres:postgres@localhost:5432/incu_smart_test"
