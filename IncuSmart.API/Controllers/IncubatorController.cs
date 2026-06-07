@@ -74,7 +74,7 @@ namespace IncuSmart.API.Controllers
 
         [Authorize(Roles = "ADMIN,TECHNICIAN,CUSTOMER")]
         [HttpGet("{id}/hatching-seasons")]
-        public async Task<IActionResult> GetHatchingSeasons(Guid id, [FromQuery] string? status, [FromQuery] string? eggType)
+        public async Task<IActionResult> GetHatchingSeasons(Guid id, [FromQuery] string? status, [FromQuery] EggType? eggType)
         {
             var result = await _incubatorUseCase.GetHatchingSeasons(id, HttpContext.GetId(), HttpContext.GetRole(), status, eggType);
             return FromResult(new BaseResponse<List<HatchingSeason>> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });

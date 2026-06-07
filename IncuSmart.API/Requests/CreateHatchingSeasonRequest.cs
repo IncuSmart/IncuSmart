@@ -10,8 +10,7 @@ namespace IncuSmart.API.Requests
         [MaxLength(100, ErrorMessage = "Name không được vượt quá 100 ký tự")]
         public string? Name { get; set; }
 
-        [MaxLength(50, ErrorMessage = "EggType không được vượt quá 50 ký tự")]
-        public string? EggType { get; set; }
+        public EggType? EggType { get; set; }
 
         [Required(ErrorMessage = "StartDate là bắt buộc")]
         public DateOnly StartDate { get; set; }

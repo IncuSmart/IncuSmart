@@ -45,7 +45,7 @@ namespace IncuSmart.Infra.Persistences.Repositories
                 .Adapt<List<HatchingSeason>>();
         }
 
-        public async Task<List<HatchingSeason>> FindByIncubatorId(Guid incubatorId, string? status, string? eggType)
+        public async Task<List<HatchingSeason>> FindByIncubatorId(Guid incubatorId, string? status, EggType? eggType)
         {
             var query = _dbContext.HatchingSeasons
                 .Where(x => x.IncubatorId == incubatorId && x.DeletedAt == null);
@@ -55,9 +55,10 @@ namespace IncuSmart.Infra.Persistences.Repositories
                 query = query.Where(x => x.Status == statusEnum);
             }
 
-            if (!string.IsNullOrWhiteSpace(eggType))
+            if (eggType.HasValue)
             {
-                query = query.Where(x => x.EggType == eggType);
+                var eggTypeStr = eggType.Value.ToString();
+                query = query.Where(x => x.EggType == eggTypeStr);
             }
 
             return (await query.OrderByDescending(x => x.CreatedAt).ToListAsync())

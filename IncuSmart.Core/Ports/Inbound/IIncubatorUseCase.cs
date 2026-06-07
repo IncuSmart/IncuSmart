@@ -7,6 +7,6 @@ namespace IncuSmart.Core.Ports.Inbound
         Task<ResultModel<PagedResult<IncubatorResponse>>> List(Guid requesterId, string requesterRole, string? status, Guid? modelId, int page, int pageSize);
         Task<ResultModel<bool>> UpdateConfigInstances(UpdateConfigInstancesCommand command);
         Task<ResultModel<bool>> UpdateStatus(Guid id, string status, string updatedBy);
-        Task<ResultModel<List<HatchingSeason>>> GetHatchingSeasons(Guid incubatorId, Guid requesterId, string requesterRole, string? status, string? eggType);
+        Task<ResultModel<List<HatchingSeason>>> GetHatchingSeasons(Guid incubatorId, Guid requesterId, string requesterRole, string? status, EggType? eggType);
     }
 }

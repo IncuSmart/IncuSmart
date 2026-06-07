@@ -8,6 +8,7 @@
         BAD_REQUEST,
         FORBIDDEN,
         UNAUTHORIZED,
-        INTERNAL_SERVER_ERROR
+        INTERNAL_SERVER_ERROR,
+        SERVICE_UNAVAILABLE
     }
 }

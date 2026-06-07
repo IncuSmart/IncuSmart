@@ -1,0 +1,42 @@
+[
+  {
+    "title": "FAO Poultry Development Review",
+    "url": "https://www.fao.org/4/i3531e/i3531e.pdf",
+    "error": "403 Client Error: Forbidden for url: https://www.fao.org/4/i3531e/i3531e.pdf"
+  },
+  {
+    "title": "Cobb Hatchery Management Guide",
+    "url": "https://www.cobb-vantress.com/assets/Cobb-Files/6427713bdc/Hatchery-Guide-Layout-R4-min.pdf",
+    "error": "404 Client Error: Not Found for url: https://www.cobbgenetics.com/assets/Cobb-Files/6427713bdc/Hatchery-Guide-Layout-R4-min.pdf"
+  },
+  {
+    "title": "Keys to Successful Handling of Hatching Eggs",
+    "url": "https://extension.msstate.edu/sites/default/files/publications/publications/P3788_web.pdf",
+    "error": "404 Client Error: Not Found for url: https://extension.msstate.edu/sites/default/files/publications/publications/P3788_web.pdf"
+  },
+  {
+    "title": "Trouble Shooting Failures with Egg Incubation",
+    "url": "https://www.extension.msstate.edu/agriculture/livestock/poultry/trouble-shooting-failures-egg-incubation",
+    "error": "HTTPSConnectionPool(host='www.extension.msstate.edu', port=443): Max retries exceeded with url: /agriculture/livestock/poultry/trouble-shooting-failures-egg-incubation (Caused by SSLError(SSLCertVerificationError(1, \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.extension.msstate.edu'. (_ssl.c:1010)\")))"
+  },
+  {
+    "title": "Incubation Temperature Requirements",
+    "url": "https://www.extension.msstate.edu/agriculture/livestock/poultry/incubation-temperature-requirements",
+    "error": "HTTPSConnectionPool(host='www.extension.msstate.edu', port=443): Max retries exceeded with url: /agriculture/livestock/poultry/incubation-temperature-requirements (Caused by SSLError(SSLCertVerificationError(1, \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.extension.msstate.edu'. (_ssl.c:1010)\")))"
+  },
+  {
+    "title": "Small Flock Series: Incubation of Poultry",
+    "url": "https://extension.missouri.edu/publications/g8353",
+    "error": "403 Client Error: Restricted Content for url: https://extension.missouri.edu/publications/g8353"
+  },
+  {
+    "title": "Pipped Eggs That Do Not Hatch",
+    "url": "https://extension.msstate.edu/agriculture/livestock/poultry/pipped-eggs-that-do-not-hatch",
+    "error": "404 Client Error: Not Found for url: https://extension.msstate.edu/agriculture/livestock/poultry/pipped-eggs-that-do-not-hatch"
+  },
+  {
+    "title": "Chick Removal from Hatchery",
+    "url": "https://extension.msstate.edu/agriculture/livestock/poultry/chick-removal-from-hatchery",
+    "error": "404 Client Error: Not Found for url: https://extension.msstate.edu/agriculture/livestock/poultry/chick-removal-from-hatchery"
+  }
+]

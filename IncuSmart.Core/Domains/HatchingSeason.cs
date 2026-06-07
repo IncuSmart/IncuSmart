@@ -12,7 +12,7 @@ namespace IncuSmart.Core.Domains
         public Guid? TemplateId { get; set; }
         public string SeasonCode { get; set; } = string.Empty;
         public string? Name { get; set; }
-        public string? EggType { get; set; }
+        public EggType? EggType { get; set; }
         public DateOnly StartDate { get; set; }
         public DateOnly? EndDate { get; set; }
         public int? TotalEggs { get; set; }

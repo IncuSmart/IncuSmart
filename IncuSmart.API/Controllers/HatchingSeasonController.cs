@@ -1,7 +1,9 @@
 using IncuSmart.Core.Domains;
+using IncuSmart.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Security.Claims;
 
 namespace IncuSmart.API.Controllers
@@ -9,7 +11,8 @@ namespace IncuSmart.API.Controllers
     [ApiController]
     [Route("api/hatching-seasons")]
     public class HatchingSeasonController(
-        IHatchingSeasonUseCase _seasonUseCase) : ApiControllerBase
+        IHatchingSeasonUseCase _seasonUseCase,
+        IAiPredictionClient _aiPredictionClient) : ApiControllerBase
     {
         /// <summary>
         /// POST /api/hatching-seasons
@@ -22,6 +25,49 @@ namespace IncuSmart.API.Controllers
             var (userId, role) = GetCurrentUser();
             var result = await _seasonUseCase.Create(request.Adapt<CreateHatchingSeasonCommand>(), userId, role);
             return FromResult(new BaseResponse<Guid?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+        }
+
+        [Authorize(Roles = "ADMIN,TECHNICIAN,CUSTOMER")]
+        [HttpPost("predict-success")]
+        public async Task<IActionResult> PredictSuccess(
+            [FromBody] PredictHatchingSuccessRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var prediction = await _aiPredictionClient.PredictSuccess(request, cancellationToken);
+                if (prediction is null)
+                {
+                    return FromResult(new BaseResponse<PredictHatchingSuccessResponse?>
+                    {
+                        StatusCode = "503",
+                        Message = "AI service returned an empty response."
+                    });
+                }
+
+                return FromResult(new BaseResponse<PredictHatchingSuccessResponse?>
+                {
+                    StatusCode = "200",
+                    Message = prediction.Message,
+                    Data = prediction
+                });
+            }
+            catch (HttpRequestException)
+            {
+                return FromResult(new BaseResponse<PredictHatchingSuccessResponse?>
+                {
+                    StatusCode = "503",
+                    Message = "AI prediction service is unavailable."
+                });
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return FromResult(new BaseResponse<PredictHatchingSuccessResponse?>
+                {
+                    StatusCode = "503",
+                    Message = "AI prediction service timed out."
+                });
+            }
         }
 
         /// <summary>
