@@ -6,26 +6,26 @@ from app.config import Settings
 from app.config import get_settings
 from app.repositories.postgres_repository import PostgresRepository
 from app.schemas import (
+    BigQueryStatusResponse,
     ChatRequest,
     ChatResponse,
     KnowledgeDebugResponse,
-    MlCacheResponse,
     MlBenchmarkResponse,
+    MlCacheResponse,
     MlEvaluationResponse,
     MlStatusResponse,
     ModelArtifactStatusResponse,
-    BigQueryStatusResponse,
     PredictSuccessRequest,
     PredictSuccessResponse,
     RecommendDebugResponse,
 )
+from app.services.bigquery_ml_service import BigQueryMlService
+from app.services.bigquery_rag_service import BigQueryRagService
+from app.services.bigquery_status_service import BigQueryStatusService
 from app.services.intent_router import IntentRouter
 from app.services.llm_service import LlmService
 from app.services.rag_service import RagService
 from app.services.recommend_service import RecommendService
-from app.services.bigquery_ml_service import BigQueryMlService
-from app.services.bigquery_rag_service import BigQueryRagService
-from app.services.bigquery_status_service import BigQueryStatusService
 
 
 class ChatOrchestrator:
@@ -47,7 +47,10 @@ class ChatOrchestrator:
             if not self._settings.knowledge_enabled:
                 return ChatResponse(
                     intent="knowledge",
-                    answer="Tính năng hỏi đáp tài liệu đang tạm tắt để tránh gọi Gemini/RAG. Hiện hệ thống chỉ xử lý recommend và dự đoán BigQuery ML.",
+                    answer=(
+                        "Tính năng hỏi đáp kiến thức đang tạm tắt. "
+                        "Hiện hệ thống chỉ xử lý đề xuất cấu hình và dự đoán tỷ lệ thành công."
+                    ),
                     sources=[],
                 )
             result = self._rag_service.answer(payload.message)
@@ -75,7 +78,7 @@ class ChatOrchestrator:
 
     def debug_knowledge(self, payload: ChatRequest) -> KnowledgeDebugResponse:
         if not self._settings.knowledge_enabled:
-            answer = "Tính năng hỏi đáp tài liệu đang tạm tắt để tránh gọi Gemini/RAG."
+            answer = "Tính năng hỏi đáp kiến thức đang tạm tắt."
             return KnowledgeDebugResponse(
                 message=payload.message,
                 answer_preview=answer,

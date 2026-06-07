@@ -45,7 +45,7 @@ class RagService:
         collection = self._get_collection()
         if collection is None:
             return RAGAnswer(
-                answer="Kho RAG chua san sang. Hay ingest lai tai lieu truoc khi hoi kien thuc.",
+                answer="Hệ thống dữ liệu chưa sẵn sàng. Vui lòng thử lại sau.",
                 sources=[],
             )
         if collection.count() == 0:
@@ -59,7 +59,7 @@ class RagService:
             )
         except Exception:
             return RAGAnswer(
-                answer="Kho RAG chua san sang hoac embedding khong tuong thich. Hay ingest lai tai lieu.",
+                answer="Hệ thống dữ liệu chưa sẵn sàng hoặc dữ liệu tìm kiếm không tương thích.",
                 sources=[],
             )
 
@@ -105,14 +105,16 @@ class RagService:
             if llm_text:
                 return RAGAnswer(answer=llm_text, sources=sources)
 
-        answer = "Tom tat tu tai lieu:\n" + "\n".join(f"- {snippet[:220]}" for snippet in snippets[:3])
+        answer = "Tóm tắt từ dữ liệu hiện có:\n" + "\n".join(
+            f"- {snippet[:220]}" for snippet in snippets[:3]
+        )
         return RAGAnswer(answer=answer, sources=sources)
 
     def _answer_with_bigquery(self, question: str) -> RAGAnswer:
         try:
             chunks = self._bigquery_rag_service.retrieve(question, self._settings.max_rag_chunks)
         except Exception:
-            return RAGAnswer(answer="Kho RAG BigQuery hien khong truy cap duoc.", sources=[])
+            return RAGAnswer(answer="Hiện không truy cập được vào hệ thống dữ liệu.", sources=[])
         if not chunks:
             return self._empty_answer()
 
@@ -128,7 +130,7 @@ class RagService:
         result = self._llm_service.complete(
             self._build_answer_prompt(question, [chunk.content for chunk in chunks])
         )
-        return RAGAnswer(answer=result.text or "Khong the tao cau tra loi tu context.", sources=sources)
+        return RAGAnswer(answer=result.text or "Chưa thể tạo câu trả lời từ dữ liệu hiện có.", sources=sources)
 
     def _build_answer_prompt(self, question: str, snippets: list[str]) -> str:
         language_instruction = {
@@ -171,6 +173,6 @@ class RagService:
 
     def _empty_answer(self) -> RAGAnswer:
         return RAGAnswer(
-            answer="Toi chua co tai lieu phu hop trong kho RAG de tra loi cau nay.",
+            answer="Tôi chưa có dữ liệu phù hợp để trả lời câu này.",
             sources=[],
         )
