@@ -9,5 +9,7 @@ namespace IncuSmart.Core.Ports.Outbound
             DateTime?   from,
             DateTime?   to,
             int         limit);
+
+        Task AddAsync(SensorReading reading);
     }
 }

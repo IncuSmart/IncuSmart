@@ -44,5 +44,19 @@ namespace IncuSmart.Infra.Persistences.Repositories
                 .ToListAsync())
                 .Adapt<List<SensorReading>>();
         }
+
+        public async Task AddAsync(SensorReading reading)
+        {
+            var entity = new SensorReadingEntity
+            {
+                Id         = Guid.NewGuid(),
+                SensorId   = reading.SensorId,
+                Value      = reading.Value,
+                RecordedAt = reading.RecordedAt,
+                Status     = BaseStatus.ACTIVE
+            };
+            await _dbContext.SensorReadings.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
+        }
     }
 }
