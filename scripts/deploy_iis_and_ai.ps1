@@ -137,7 +137,7 @@ Write-Host "Deploying AI service to: $AiPath"
 Invoke-RobocopyMirror `
     -Source $AiSourcePath `
     -Destination $AiPath `
-    -ExcludeDirs @(".venv", "storage", "__pycache__", ".pytest_cache", "incusmart_ai_chatbox.egg-info", "colab") `
+    -ExcludeDirs @(".venv", "storage", "secrets", "__pycache__", ".pytest_cache", "incusmart_ai_chatbox.egg-info", "colab") `
     -ExcludeFiles @(".env", "*.pyc")
 
 Push-Location $AiPath
