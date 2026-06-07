@@ -74,6 +74,10 @@
         services.Configure<CloudinaryOptions>(options =>
             config.GetSection(CloudinaryOptions.SectionName).Bind(options));
 
+        services.Configure<EmailOptions>(options =>
+            config.GetSection(EmailOptions.SectionName).Bind(options));
+        services.AddScoped<IEmailService, EmailService>();
+
         // Inject utils
         services.AddSingleton<IRedisService, RedisService>();
         services.AddSingleton<ISMSService, SMSService>();
