@@ -20,7 +20,7 @@ namespace IncuSmart.Test.Tests
 
         private static readonly HatchingSeasonTemplateDetailResponse SampleTemplateDetail = new()
         {
-            Template = new HatchingSeasonTemplate { Id = TemplateId, Name = "Mẫu Ấp Gà 21 Ngày", EggType = "Gà", Status = IncuSmart.Core.Enums.BaseStatus.ACTIVE },
+            Template = new HatchingSeasonTemplate { Id = TemplateId, Name = "Mẫu Ấp Gà 21 Ngày", EggType = EggType.CHICKEN, Status = IncuSmart.Core.Enums.BaseStatus.ACTIVE },
             Batches  = []
         };
 
@@ -41,7 +41,7 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateHatchingSeasonTemplateRequest
             {
                 Name    = "Mẫu Ấp Gà 21 Ngày",
-                EggType = "Gà",
+                EggType = EggType.CHICKEN,
                 Batches = []
             });
 
@@ -57,7 +57,7 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateHatchingSeasonTemplateRequest
             {
                 Name    = "Mẫu Ấp Gà 21 Ngày",
-                EggType = "Gà",
+                EggType = EggType.CHICKEN,
                 Batches = []
             });
 
@@ -122,7 +122,7 @@ namespace IncuSmart.Test.Tests
             _templateUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingSeasonTemplateCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
                 .ReturnsAsync(ControllerTestBase.OkResult(true));
 
-            var result = await _controller.Update(TemplateId, new UpdateHatchingSeasonTemplateRequest { Name = "Mẫu Ấp Gà 21 Ngày v2", EggType = "Gà", Batches = [] });
+            var result = await _controller.Update(TemplateId, new UpdateHatchingSeasonTemplateRequest { Name = "Mẫu Ấp Gà 21 Ngày v2", EggType = EggType.CHICKEN, Batches = [] });
 
             result.Should().BeOfType<OkObjectResult>();
         }
@@ -133,7 +133,7 @@ namespace IncuSmart.Test.Tests
             _templateUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingSeasonTemplateCommand>(), It.IsAny<Guid?>(), It.IsAny<string>()))
                 .ReturnsAsync(ControllerTestBase.NotFoundResult<bool>("Không tìm thấy template"));
 
-            var result = await _controller.Update(Guid.NewGuid(), new UpdateHatchingSeasonTemplateRequest { Name = "X", EggType = "X", Batches = [] });
+            var result = await _controller.Update(Guid.NewGuid(), new UpdateHatchingSeasonTemplateRequest { Name = "X", EggType = null, Batches = [] });
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }
@@ -145,7 +145,7 @@ namespace IncuSmart.Test.Tests
             _templateUseCase.Setup(x => x.Update(It.IsAny<IncuSmart.Core.Commands.UpdateHatchingSeasonTemplateCommand>(), It.IsAny<Guid?>(), "CUSTOMER"))
                 .ReturnsAsync(ControllerTestBase.ForbiddenResult<bool>("Không có quyền chỉnh sửa template này"));
 
-            var result = await _controller.Update(TemplateId, new UpdateHatchingSeasonTemplateRequest { Name = "X", EggType = "X", Batches = [] });
+            var result = await _controller.Update(TemplateId, new UpdateHatchingSeasonTemplateRequest { Name = "X", EggType = null, Batches = [] });
 
             var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
             objectResult.StatusCode.Should().Be(StatusCodes.Status403Forbidden);

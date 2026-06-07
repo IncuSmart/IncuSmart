@@ -1,12 +1,19 @@
 from fastapi import FastAPI
 
-from app.api.chat import router as chat_router
-from app.config import get_settings
+from app.api.chat import debug_router, router as chat_router
+from app.config import Settings, get_settings
 
-settings = get_settings()
 
-app = FastAPI(title=settings.app_name)
-app.include_router(chat_router)
+def create_app(settings: Settings | None = None) -> FastAPI:
+    resolved_settings = settings or get_settings()
+    application = FastAPI(title=resolved_settings.app_name)
+    application.include_router(chat_router)
+    if resolved_settings.enable_debug_endpoints:
+        application.include_router(debug_router)
+    return application
+
+
+app = create_app()
 
 
 @app.get("/health")

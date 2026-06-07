@@ -1,6 +1,8 @@
 using FluentAssertions;
 using IncuSmart.API.Controllers;
 using IncuSmart.API.Requests;
+using IncuSmart.API.Responses;
+using IncuSmart.API.Services;
 using IncuSmart.Core.Domains;
 using IncuSmart.Core.Ports.Inbound;
 using IncuSmart.Core.Responses;
@@ -14,6 +16,7 @@ namespace IncuSmart.Test.Tests
     public class HatchingSeasonControllerTests
     {
         private readonly Mock<IHatchingSeasonUseCase> _seasonUseCase = new();
+        private readonly Mock<IAiPredictionClient> _aiPredictionClient = new();
         private readonly HatchingSeasonController     _controller;
 
         private static readonly Guid SeasonId    = Guid.NewGuid();
@@ -21,14 +24,50 @@ namespace IncuSmart.Test.Tests
 
         private static readonly HatchingSeasonDetailResponse SampleSeasonDetail = new()
         {
-            Season  = new HatchingSeason { Id = SeasonId, EggType = "Gà", Status = IncuSmart.Core.Enums.HatchingSeasonStatus.ACTIVE },
+            Season  = new HatchingSeason { Id = SeasonId, EggType = EggType.CHICKEN, Status = IncuSmart.Core.Enums.HatchingSeasonStatus.ACTIVE },
             Batches = []
         };
 
         public HatchingSeasonControllerTests()
         {
-            _controller = new HatchingSeasonController(_seasonUseCase.Object);
+            _controller = new HatchingSeasonController(_seasonUseCase.Object, _aiPredictionClient.Object);
             ControllerTestBase.SetupHttpContext(_controller, ControllerTestBase.AdminId, "ADMIN");
+        }
+
+        [Fact]
+        public async Task PredictSuccess_AiAvailable_Returns200()
+        {
+            _aiPredictionClient
+                .Setup(x => x.PredictSuccess(It.IsAny<PredictHatchingSuccessRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new PredictHatchingSuccessResponse
+                {
+                    EggType = "chicken",
+                    TotalEggs = 100,
+                    PredictedSuccessPercent = 86.04,
+                    PredictionMode = "synthetic_knn",
+                    Message = "Prediction ready."
+                });
+
+            var result = await _controller.PredictSuccess(
+                new PredictHatchingSuccessRequest { EggType = "chicken", TotalEggs = 100 },
+                CancellationToken.None);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public async Task PredictSuccess_AiUnavailable_Returns503()
+        {
+            _aiPredictionClient
+                .Setup(x => x.PredictSuccess(It.IsAny<PredictHatchingSuccessRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException());
+
+            var result = await _controller.PredictSuccess(
+                new PredictHatchingSuccessRequest { EggType = "chicken", TotalEggs = 100 },
+                CancellationToken.None);
+
+            var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+            objectResult.StatusCode.Should().Be(StatusCodes.Status503ServiceUnavailable);
         }
 
         // ─── F01: Create ──────────────────────────────────────────────────────────────
@@ -42,7 +81,7 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateHatchingSeasonRequest
             {
                 IncubatorId = IncubatorId,
-                EggType     = "Gà",
+                EggType     = EggType.CHICKEN,
                 StartDate   = DateOnly.FromDateTime(DateTime.UtcNow),
                 TemplateId  = null
             });
@@ -59,7 +98,7 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateHatchingSeasonRequest
             {
                 IncubatorId = Guid.NewGuid(),
-                EggType     = "Vịt",
+                EggType     = EggType.DUCK,
                 StartDate   = DateOnly.FromDateTime(DateTime.UtcNow)
             });
 
@@ -76,7 +115,7 @@ namespace IncuSmart.Test.Tests
             var result = await _controller.Create(new CreateHatchingSeasonRequest
             {
                 IncubatorId = IncubatorId,
-                EggType     = "Gà",
+                EggType     = EggType.CHICKEN,
                 StartDate   = DateOnly.FromDateTime(DateTime.UtcNow)
             });
 

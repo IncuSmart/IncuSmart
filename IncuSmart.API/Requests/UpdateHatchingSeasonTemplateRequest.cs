@@ -7,8 +7,7 @@ namespace IncuSmart.API.Requests
 
         public string? Description { get; set; }
 
-        [MaxLength(50, ErrorMessage = "EggType không được vượt quá 50 ký tự")]
-        public string? EggType { get; set; }
+        public EggType? EggType { get; set; }
 
         public bool? IsActive { get; set; }
 

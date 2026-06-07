@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import chromadb
@@ -53,9 +54,11 @@ def ingest_documents() -> int:
         if not chunks:
             continue
         embeddings = embedding_model.encode(chunks).tolist()
-        ids = [f"{doc_path.name}-{index}" for index, _ in enumerate(chunks)]
+        relative_source = str(doc_path.relative_to(settings.docs_dir)).replace("\\", "/")
+        source_id = hashlib.sha256(relative_source.encode("utf-8")).hexdigest()[:16]
+        ids = [f"{source_id}-{index}" for index, _ in enumerate(chunks)]
         metadatas = [
-            {"source": doc_path.name, "section": f"chunk-{index}", "topic": doc_path.stem}
+            {"source": relative_source, "section": f"chunk-{index}", "topic": doc_path.stem}
             for index, _ in enumerate(chunks)
         ]
         collection.upsert(ids=ids, documents=chunks, metadatas=metadatas, embeddings=embeddings)

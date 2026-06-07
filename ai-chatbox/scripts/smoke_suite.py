@@ -23,6 +23,7 @@ def main() -> None:
     parser.add_argument("--base-url", help="Override base URL. Defaults to AI_CHATBOX_BASE_URL or http://127.0.0.1:8001")
     parser.add_argument("--skip-recommend", action="store_true", help="Skip recommend endpoint checks.")
     parser.add_argument("--skip-knowledge", action="store_true", help="Skip knowledge endpoint checks.")
+    parser.add_argument("--include-debug", action="store_true", help="Also call debug endpoints when enabled.")
     args = parser.parse_args()
     base_url = resolve_base_url(args.base_url)
 
@@ -40,16 +41,17 @@ def main() -> None:
         }
         call(base_url, "chat recommend", "POST", "/chat", recommend_payload)
 
-        debug_recommend_payload = {
-            "message": "de xuat cau hinh ap trung ga cho 300 eggs",
-            "session_id": "suite-debug-recommend",
-            "user_context": {
-                "ambient_temperature": 31,
-                "ambient_humidity": 67,
-                "notes": "smoke suite debug recommend",
-            },
-        }
-        call(base_url, "debug recommend", "POST", "/debug/recommend", debug_recommend_payload)
+        if args.include_debug:
+            debug_recommend_payload = {
+                "message": "de xuat cau hinh ap trung ga cho 300 eggs",
+                "session_id": "suite-debug-recommend",
+                "user_context": {
+                    "ambient_temperature": 31,
+                    "ambient_humidity": 67,
+                    "notes": "smoke suite debug recommend",
+                },
+            }
+            call(base_url, "debug recommend", "POST", "/debug/recommend", debug_recommend_payload)
 
     if not args.skip_knowledge:
         knowledge_payload = {
@@ -59,12 +61,13 @@ def main() -> None:
         }
         call(base_url, "chat knowledge", "POST", "/chat", knowledge_payload)
 
-        debug_knowledge_payload = {
-            "message": "nhiet do va do am cho cac giai doan ap trung ga la gi",
-            "session_id": "suite-debug-knowledge",
-            "user_context": {},
-        }
-        call(base_url, "debug knowledge", "POST", "/debug/knowledge", debug_knowledge_payload)
+        if args.include_debug:
+            debug_knowledge_payload = {
+                "message": "nhiet do va do am cho cac giai doan ap trung ga la gi",
+                "session_id": "suite-debug-knowledge",
+                "user_context": {},
+            }
+            call(base_url, "debug knowledge", "POST", "/debug/knowledge", debug_knowledge_payload)
 
 
 if __name__ == "__main__":

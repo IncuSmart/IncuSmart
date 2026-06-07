@@ -14,6 +14,11 @@ class LlmResult:
     text: str
 
 
+@dataclass
+class EmbeddingResult:
+    values: list[float]
+
+
 class LlmServiceError(RuntimeError):
     pass
 
@@ -42,6 +47,14 @@ class LlmService:
         if provider == "gemini":
             return self._complete_gemini(prompt, temperature)
         return self._complete_openai_compatible(prompt, temperature)
+
+    def embed_texts(self, texts: list[str], task_type: str) -> list[EmbeddingResult]:
+        if not texts:
+            return []
+        provider = self._settings.llm_provider.lower()
+        if provider != "gemini" or not self._settings.llm_api_key:
+            raise LlmServiceError("Gemini API key is required for cloud RAG embeddings.")
+        return self._embed_texts_gemini(texts, task_type)
 
     def _complete_gemini(self, prompt: str, temperature: float) -> LlmResult:
         base_url = (
@@ -74,6 +87,40 @@ class LlmService:
         parts = candidates[0].get("content", {}).get("parts", [])
         text = "\n".join(part.get("text", "") for part in parts if part.get("text"))
         return LlmResult(text=text.strip())
+
+    def _embed_texts_gemini(self, texts: list[str], task_type: str) -> list[EmbeddingResult]:
+        base_url = (
+            self._settings.llm_base_url.rstrip("/")
+            if self._settings.llm_base_url
+            else "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+        model = self._settings.llm_embedding_model
+        url = f"{base_url}/{model}:batchEmbedContents"
+        response = self._post_with_retries(
+            label="Gemini batchEmbedContents",
+            request_fn=lambda: requests.post(
+                url,
+                headers={"Content-Type": "application/json"},
+                params={"key": self._settings.llm_api_key},
+                json={
+                    "requests": [
+                        {
+                            "model": f"models/{model}",
+                            "content": {"parts": [{"text": text}]},
+                            "taskType": task_type,
+                        }
+                        for text in texts
+                    ]
+                },
+                timeout=self._settings.llm_timeout_seconds,
+            ),
+        )
+        data = response.json()
+        embeddings = data.get("embeddings", [])
+        return [
+            EmbeddingResult(values=[float(value) for value in item.get("values", [])])
+            for item in embeddings
+        ]
 
     def _complete_openai_compatible(self, prompt: str, temperature: float) -> LlmResult:
         response = self._post_with_retries(

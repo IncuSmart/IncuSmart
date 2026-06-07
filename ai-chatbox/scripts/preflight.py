@@ -41,9 +41,9 @@ def main() -> None:
     print("2. Run .\\scripts\\test_health.ps1")
     print("3. Run smoke tests as needed:")
     print("   - .\\scripts\\smoke_chat.ps1")
-    print("   - .\\scripts\\smoke_debug_recommend.ps1")
     print("   - .\\scripts\\smoke_knowledge.ps1")
-    print("   - .\\scripts\\smoke_debug_knowledge.ps1")
+    print("   - .\\scripts\\smoke_suite.ps1")
+    print("4. Enable AI_CHATBOX_ENABLE_DEBUG_ENDPOINTS=true before running debug smoke scripts.")
 
 
 if __name__ == "__main__":

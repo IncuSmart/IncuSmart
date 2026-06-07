@@ -231,7 +231,7 @@ namespace IncuSmart.Core.Usecases
             }
         }
 
-        public async Task<ResultModel<List<HatchingSeason>>> GetHatchingSeasons(Guid incubatorId, Guid requesterId, string requesterRole, string? status, string? eggType)
+        public async Task<ResultModel<List<HatchingSeason>>> GetHatchingSeasons(Guid incubatorId, Guid requesterId, string requesterRole, string? status, EggType? eggType)
         {
             var incubator = await _incubatorRepository.FindById(incubatorId);
             if (incubator == null)

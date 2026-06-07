@@ -12,6 +12,7 @@ $PortValue = if ($env:AI_CHATBOX_API_PORT) { $env:AI_CHATBOX_API_PORT } else { "
 $LogDir = Join-Path $ProjectRoot "storage\logs"
 $RunDir = Join-Path $ProjectRoot "storage\run"
 $LogFile = Join-Path $LogDir "uvicorn.log"
+$ErrorLogFile = Join-Path $LogDir "uvicorn-error.log"
 $PidFile = Join-Path $RunDir "api.pid"
 
 if (-not (Test-Path $LogDir)) {
@@ -32,12 +33,12 @@ if (Test-Path $PidFile) {
     Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
 }
 
-$ArgumentList = "-m uvicorn app.main:app --host $HostValue --port $PortValue --reload"
+$ArgumentList = "-m uvicorn app.main:app --host $HostValue --port $PortValue"
 $Process = Start-Process -FilePath $PythonExe `
     -ArgumentList $ArgumentList `
     -WorkingDirectory $ProjectRoot `
     -RedirectStandardOutput $LogFile `
-    -RedirectStandardError $LogFile `
+    -RedirectStandardError $ErrorLogFile `
     -WindowStyle Hidden `
     -PassThru
 
@@ -48,4 +49,5 @@ Write-Host "PID: $($Process.Id)"
 Write-Host "Host: $HostValue"
 Write-Host "Port: $PortValue"
 Write-Host "Log: $LogFile"
+Write-Host "Error log: $ErrorLogFile"
 Write-Host "PID file: $PidFile"

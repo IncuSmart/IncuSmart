@@ -16,11 +16,11 @@ if (-not (Test-Path $LogDir)) {
     New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 }
 
-Write-Host "Starting API on $HostValue:$PortValue"
+Write-Host "Starting API on ${HostValue}:$PortValue"
 Write-Host "Logging to $LogFile"
 
 @"
-[$(Get-Date -Format s)] Starting uvicorn on $HostValue:$PortValue
+[$(Get-Date -Format s)] Starting uvicorn on ${HostValue}:$PortValue
 "@ | Out-File -FilePath $LogFile -Encoding utf8 -Append
 
 & $PythonExe -m uvicorn app.main:app --host $HostValue --port $PortValue --reload *>> $LogFile

@@ -7,4 +7,4 @@ Set-Location $ProjectRoot
 . (Join-Path $ScriptDir "_resolve_python.ps1")
 $PythonExe = Resolve-AiChatboxPython -ProjectRoot $ProjectRoot
 
-& $PythonExe "scripts\generate_synthetic_data_with_gemini.py"
+& $PythonExe "scripts\generate_synthetic_data_with_gemini.py" @args

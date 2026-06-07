@@ -1,8 +1,12 @@
+import sys
+
 from app.config import get_settings
 from app.services.llm_service import LlmService, LlmServiceError
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     settings = get_settings()
     service = LlmService(settings)
     if not service.is_enabled():

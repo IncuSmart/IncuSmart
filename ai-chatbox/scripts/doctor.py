@@ -64,6 +64,7 @@ def main() -> None:
     print(f"base_url           : {report['base_url']}")
     print(f"llm_provider       : {report['masked_config'].get('llm_provider')}")
     print(f"llm_model          : {report['masked_config'].get('llm_model')}")
+    print(f"debug_endpoints    : {report['masked_config'].get('enable_debug_endpoints')}")
     print(f"docs_dir_config    : {report['masked_config'].get('docs_dir')}")
     print(f"postgres_dsn_masked: {report['masked_config'].get('postgres_dsn_masked')}")
     print(f"llm_key_masked     : {report['masked_config'].get('llm_api_key_masked')}")

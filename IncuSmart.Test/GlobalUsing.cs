@@ -1,0 +1,9 @@
+global using IncuSmart.API.Requests;
+global using IncuSmart.Core.Commands;
+global using IncuSmart.Core.Common;
+global using IncuSmart.Core.Domain;
+global using IncuSmart.Core.Domains;
+global using IncuSmart.Core.Enums;
+global using IncuSmart.Core.Ports.Inbound;
+global using IncuSmart.Core.Responses;
+global using System.ComponentModel.DataAnnotations;

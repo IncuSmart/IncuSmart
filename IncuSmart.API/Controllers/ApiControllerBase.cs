@@ -35,6 +35,7 @@
                 API.StatusCode.FORBIDDEN => StatusCode(StatusCodes.Status403Forbidden, response),
                 API.StatusCode.UNAUTHORIZED => Unauthorized(response),
                 API.StatusCode.INTERNAL_SERVER_ERROR => StatusCode(StatusCodes.Status500InternalServerError, response),
+                API.StatusCode.SERVICE_UNAVAILABLE => StatusCode(StatusCodes.Status503ServiceUnavailable, response),
                 API.StatusCode.BAD_REQUEST => BadRequest(response),
                 _ => BadRequest(response)
             };
@@ -51,6 +52,7 @@
                 "401" => API.StatusCode.UNAUTHORIZED,
                 "400" => API.StatusCode.BAD_REQUEST,
                 "500" => API.StatusCode.INTERNAL_SERVER_ERROR,
+                "503" => API.StatusCode.SERVICE_UNAVAILABLE,
                 _ => API.StatusCode.BAD_REQUEST
             };
         }
