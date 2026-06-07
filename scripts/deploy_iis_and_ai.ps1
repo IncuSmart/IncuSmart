@@ -130,7 +130,7 @@ Invoke-RobocopyMirror `
     -Source $PublishFullPath `
     -Destination $IisPath `
     -ExcludeDirs @("logs") `
-    -ExcludeFiles @("appsettings.json", "appsettings.*.json")
+    -ExcludeFiles @("appsettings.json", "appsettings.*.json", "web.config")
 & "$env:windir\system32\inetsrv\appcmd.exe" start apppool "/apppool.name:$IisAppPool" | Out-Host
 
 Write-Host "Deploying AI service to: $AiPath"
