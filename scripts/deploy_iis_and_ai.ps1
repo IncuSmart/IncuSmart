@@ -126,7 +126,11 @@ $AiSourcePath = Resolve-Path (Join-Path $RepoRoot "ai-chatbox")
 
 Write-Host "Deploying .NET API to IIS path: $IisPath"
 & "$env:windir\system32\inetsrv\appcmd.exe" stop apppool "/apppool.name:$IisAppPool" | Out-Host
-Invoke-RobocopyMirror -Source $PublishFullPath -Destination $IisPath
+Invoke-RobocopyMirror `
+    -Source $PublishFullPath `
+    -Destination $IisPath `
+    -ExcludeDirs @("logs") `
+    -ExcludeFiles @("appsettings.json", "appsettings.*.json")
 & "$env:windir\system32\inetsrv\appcmd.exe" start apppool "/apppool.name:$IisAppPool" | Out-Host
 
 Write-Host "Deploying AI service to: $AiPath"
