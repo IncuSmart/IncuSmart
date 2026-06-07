@@ -39,14 +39,19 @@ namespace IncuSmart.Infra.Mqtt
             var opts = BuildOptions();
             await client.StartAsync(opts);
 
+            // Topics khớp với ESP32 firmware (egg_incubator/...)
             await client.SubscribeAsync(new[]
             {
                 new MqttTopicFilterBuilder()
-                    .WithTopic("incubator/+/telemetry")
+                    .WithTopic("egg_incubator/telemetry")
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
                     .Build(),
                 new MqttTopicFilterBuilder()
-                    .WithTopic("incubator/+/status")
+                    .WithTopic("egg_incubator/status")
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                    .Build(),
+                new MqttTopicFilterBuilder()
+                    .WithTopic("egg_incubator/alarm")
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
                     .Build()
             });
@@ -63,71 +68,113 @@ namespace IncuSmart.Infra.Mqtt
             var clientOptsBuilder = new MqttClientOptionsBuilder()
                 .WithClientId($"incusmart-be-{Guid.NewGuid():N}")
                 .WithTcpServer(_options.Host, _options.Port)
-                .WithCredentials(_options.Username, _options.Password)
                 .WithCleanSession();
+
+            if (!string.IsNullOrEmpty(_options.Username))
+                clientOptsBuilder.WithCredentials(_options.Username, _options.Password);
 
             if (_options.UseTls)
             {
                 clientOptsBuilder.WithTlsOptions(o =>
-                    o.WithCertificateValidationHandler(_ => true)); // swap with CA cert in production
+                    o.WithCertificateValidationHandler(_ => true));
             }
 
             return new ManagedMqttClientOptionsBuilder()
-                .WithAutoReconnectDelay(TimeSpan.FromSeconds(5))
+                .WithAutoReconnectDelay(TimeSpan.FromSeconds(30))
                 .WithClientOptions(clientOptsBuilder.Build())
                 .Build();
         }
 
         private async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs e)
         {
-            var topic    = e.ApplicationMessage.Topic;
-            var payload  = e.ApplicationMessage.ConvertPayloadToString();
-            var segments = topic.Split('/');
-
-            if (segments.Length < 3) return;
-
-            var mac  = segments[1];
-            var type = segments[2];
+            var topic   = e.ApplicationMessage.Topic;
+            var payload = e.ApplicationMessage.ConvertPayloadToString();
 
             try
             {
-                switch (type)
+                switch (topic)
                 {
-                    case "telemetry":
-                        await HandleTelemetryAsync(mac, payload);
+                    case "egg_incubator/telemetry":
+                        await HandleTelemetryAsync(payload);
                         break;
-                    case "status":
-                        await HandleStatusAsync(mac, payload);
+                    case "egg_incubator/status":
+                        await HandleStatusAsync(payload);
+                        break;
+                    case "egg_incubator/alarm":
+                        _logger.LogWarning("[MQTT] Alarm received: {Payload}", payload);
+                        await _notifier.NotifyTelemetryAsync(_options.DeviceMac, payload);
                         break;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MQTT] Error handling message from {Mac}", mac);
+                _logger.LogError(ex, "[MQTT] Error handling message on {Topic}", topic);
             }
         }
 
-        private async Task HandleTelemetryAsync(string mac, string payload)
+        private async Task HandleTelemetryAsync(string payload)
         {
-            // Push real-time to SignalR (UI subscribes to device group by MAC)
+            var mac = _options.DeviceMac;
+
+            // Push real-time tới SignalR
             await _notifier.NotifyTelemetryAsync(mac, payload);
 
-            // Update Masterboard.LastSeenAt
             using var scope = _scopeFactory.CreateScope();
-            var masterboardRepo = scope.ServiceProvider.GetRequiredService<IMasterboardRepository>();
+            var masterboardRepo   = scope.ServiceProvider.GetRequiredService<IMasterboardRepository>();
+            var sensorRepo        = scope.ServiceProvider.GetRequiredService<ISensorRepository>();
+            var sensorReadingRepo = scope.ServiceProvider.GetRequiredService<ISensorReadingRepository>();
 
             var board = await masterboardRepo.FindByMacAddress(mac);
-            if (board != null)
-                await masterboardRepo.UpdateLastSeenAt(board.Id, DateTime.UtcNow);
+            if (board == null)
+            {
+                _logger.LogWarning("[MQTT] Masterboard not found for MAC: {Mac}", mac);
+                return;
+            }
+
+            await masterboardRepo.UpdateLastSeenAt(board.Id, DateTime.UtcNow);
+
+            // Lưu sensor readings vào DB
+            try
+            {
+                var doc     = JsonDocument.Parse(payload);
+                var sensors = await sensorRepo.FindByMasterboardId(board.Id);
+                var now     = DateTime.UtcNow;
+
+                foreach (var sensor in sensors)
+                {
+                    var code  = sensor.HardwareCode?.ToLower() ?? "";
+                    decimal? value = null;
+
+                    if (code.Contains("temp") && doc.RootElement.TryGetProperty("temperature", out var tempEl))
+                        value = (decimal)tempEl.GetDouble();
+                    else if (code.Contains("humid") && doc.RootElement.TryGetProperty("humidity", out var humidEl))
+                        value = (decimal)humidEl.GetDouble();
+
+                    if (value.HasValue)
+                        await sensorReadingRepo.AddAsync(new SensorReading
+                        {
+                            SensorId   = sensor.Id,
+                            Value      = value,
+                            RecordedAt = now,
+                            Status     = BaseStatus.ACTIVE
+                        });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[MQTT] Failed to save sensor readings for {Mac}", mac);
+            }
         }
 
-        private async Task HandleStatusAsync(string mac, string payload)
+        private async Task HandleStatusAsync(string payload)
         {
             try
             {
                 var doc    = JsonDocument.Parse(payload);
-                var online = doc.RootElement.GetProperty("online").GetBoolean();
-                await _notifier.NotifyStatusAsync(mac, online);
+                // ESP32 gửi {"status": "online"} hoặc {"status": "offline"}
+                var status = doc.RootElement.GetProperty("status").GetString();
+                var online = status == "online";
+                await _notifier.NotifyStatusAsync(_options.DeviceMac, online);
             }
             catch
             {
