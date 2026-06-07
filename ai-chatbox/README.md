@@ -549,3 +549,25 @@ Pricing references:
 Fastest path:
 
 1. `.\scripts\all_in_one.ps1`
+
+## IIS/Jenkins Deployment
+
+The Python AI service is deployed as a separate background FastAPI process on the IIS server. IIS continues to host the .NET API; the .NET API calls AI through `http://127.0.0.1:8001`.
+
+The root `Jenkinsfile` calls `scripts\deploy_iis_and_ai.ps1`, which:
+
+- publishes the .NET app to `C:\inetpub\incusmart`
+- copies `ai-chatbox` to `C:\inetpub\incusmart-ai`
+- preserves production `.env`, `.venv`, and `storage`
+- creates `.venv` if missing
+- runs `pip install -e .`
+- restarts the AI process with `scripts\run_api_background.ps1`
+- checks `http://127.0.0.1:8001/health`
+
+Production server requirements:
+
+- IIS and ASP.NET Core Hosting Bundle
+- Python 3.11+
+- production `C:\inetpub\incusmart-ai\.env`
+- BigQuery service account JSON path referenced by `.env`
+- Jenkins agent permission to stop/start `IncuSmartPool`, copy files under `C:\inetpub`, and start the Python process

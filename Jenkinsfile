@@ -34,15 +34,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 bat '''
-                %windir%\\system32\\inetsrv\\appcmd stop apppool /apppool.name:IncuSmartPool
-
-                if not exist C:\\inetpub\\incusmart (
-                    mkdir C:\\inetpub\\incusmart
-                )
-
-                xcopy publish C:\\inetpub\\incusmart /E /I /Y
-
-                %windir%\\system32\\inetsrv\\appcmd start apppool /apppool.name:IncuSmartPool
+                set JENKINS_NODE_COOKIE=dontKillMe
+                powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\deploy_iis_and_ai.ps1
                 '''
             }
         }
