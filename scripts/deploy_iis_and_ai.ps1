@@ -1,12 +1,14 @@
-$ErrorActionPreference = "Stop"
-
 param(
     [string]$IisAppPool = "IncuSmartPool",
     [string]$IisPath = "C:\inetpub\incusmart",
     [string]$PublishPath = "publish",
     [string]$AiPath = "C:\inetpub\incusmart-ai",
-    [string]$AiBaseUrl = "http://127.0.0.1:8001"
+    [string]$AiBaseUrl = "http://127.0.0.1:8001",
+    [string]$PythonVersion = "3.12.10",
+    [string]$PythonInstallDir = "C:\Python312"
 )
+
+$ErrorActionPreference = "Stop"
 
 function Invoke-RobocopyMirror {
     param(
@@ -52,7 +54,70 @@ function Resolve-Python {
         }
     }
 
-    throw "Python was not found. Install Python 3.11+ on the Jenkins/IIS server."
+    return $null
+}
+
+function Install-PythonIfMissing {
+    param(
+        [Parameter(Mandatory = $true)][string]$ProjectRoot,
+        [string]$Version,
+        [string]$InstallDir
+    )
+
+    $existingPython = Resolve-Python -ProjectRoot $ProjectRoot
+    if ($existingPython) {
+        Write-Host "Python found: $existingPython"
+        return $existingPython
+    }
+
+    Write-Host "Python was not found. Installing Python $Version..."
+
+    $winget = Get-Command "winget" -ErrorAction SilentlyContinue
+    if ($winget) {
+        try {
+            & winget install --id Python.Python.3.12 --exact --silent --accept-package-agreements --accept-source-agreements
+            $installedPython = Resolve-Python -ProjectRoot $ProjectRoot
+            if ($installedPython) {
+                Write-Host "Python installed by winget: $installedPython"
+                return $installedPython
+            }
+        } catch {
+            Write-Warning "winget Python install failed, falling back to python.org installer: $($_.Exception.Message)"
+        }
+    }
+
+    if (-not (Test-Path $InstallDir)) {
+        New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+    }
+
+    $installerUrl = "https://www.python.org/ftp/python/$Version/python-$Version-amd64.exe"
+    $installerPath = Join-Path $env:TEMP "python-$Version-amd64.exe"
+    Write-Host "Downloading Python installer: $installerUrl"
+    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+
+    Write-Host "Installing Python to $InstallDir"
+    $process = Start-Process -FilePath $installerPath `
+        -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 TargetDir=`"$InstallDir`"" `
+        -Wait `
+        -PassThru
+
+    if ($process.ExitCode -ne 0) {
+        throw "Python installer failed with exit code $($process.ExitCode)"
+    }
+
+    $installedPath = Join-Path $InstallDir "python.exe"
+    if (Test-Path $installedPath) {
+        Write-Host "Python installed: $installedPath"
+        return $installedPath
+    }
+
+    $installedPython = Resolve-Python -ProjectRoot $ProjectRoot
+    if ($installedPython) {
+        Write-Host "Python installed: $installedPython"
+        return $installedPython
+    }
+
+    throw "Python installation completed but python.exe could not be found."
 }
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -79,7 +144,7 @@ try {
     }
 
     if (-not (Test-Path ".venv\Scripts\python.exe")) {
-        $systemPython = Resolve-Python -ProjectRoot $AiPath
+        $systemPython = Install-PythonIfMissing -ProjectRoot $AiPath -Version $PythonVersion -InstallDir $PythonInstallDir
         & $systemPython -m venv .venv
     }
 

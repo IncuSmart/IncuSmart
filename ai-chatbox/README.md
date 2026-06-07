@@ -559,6 +559,7 @@ The root `Jenkinsfile` calls `scripts\deploy_iis_and_ai.ps1`, which:
 - publishes the .NET app to `C:\inetpub\incusmart`
 - copies `ai-chatbox` to `C:\inetpub\incusmart-ai`
 - preserves production `.env`, `.venv`, and `storage`
+- checks for Python and installs Python 3.12 automatically if missing
 - creates `.venv` if missing
 - runs `pip install -e .`
 - restarts the AI process with `scripts\run_api_background.ps1`
@@ -567,7 +568,7 @@ The root `Jenkinsfile` calls `scripts\deploy_iis_and_ai.ps1`, which:
 Production server requirements:
 
 - IIS and ASP.NET Core Hosting Bundle
-- Python 3.11+
+- Python 3.11+ or outbound access that lets Jenkins install Python 3.12 through `winget`/python.org
 - production `C:\inetpub\incusmart-ai\.env`
 - BigQuery service account JSON path referenced by `.env`
 - Jenkins agent permission to stop/start `IncuSmartPool`, copy files under `C:\inetpub`, and start the Python process
