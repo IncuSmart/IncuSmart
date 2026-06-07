@@ -3,6 +3,7 @@ from app.main import create_app
 from app.schemas import ChatRequest
 from app.services.chat_orchestrator import ChatOrchestrator
 from app.services.intent_router import IntentRouter
+from fastapi.testclient import TestClient
 
 
 def _route_paths(enable_debug_endpoints: bool) -> set[str]:
@@ -30,6 +31,23 @@ def test_debug_endpoints_can_be_enabled_explicitly() -> None:
     assert "/debug/model-artifact-status" in paths
     assert "/debug/bigquery-status" in paths
     assert "/debug/ml-benchmark" in paths
+
+
+def test_chat_preflight_allows_browser_cors() -> None:
+    app = create_app(Settings(cors_origins="*"))
+    client = TestClient(app)
+
+    response = client.options(
+        "/chat",
+        headers={
+            "Origin": "https://api-incusmart.io.vn",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "*"
 
 
 class _RagShouldNotRun:
