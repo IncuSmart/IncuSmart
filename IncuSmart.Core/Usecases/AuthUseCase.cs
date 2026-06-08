@@ -1,4 +1,6 @@
 using IncuSmart.Core.Enums;
+using IncuSmart.Core.Services;
+using System.Text.Json;
 
 namespace IncuSmart.Core.Usecases
 {
@@ -7,20 +9,29 @@ namespace IncuSmart.Core.Usecases
         private readonly IUserRepository _userRepository;
         private readonly ICustomerRepository _customerRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IRedisService _redisService;
+        private readonly IEmailService _emailService;
 
-        public AuthUseCase(IUserRepository userRepository, ICustomerRepository customerRepository, IUnitOfWork unitOfWork)
+        private static readonly TimeSpan SessionTtl = TimeSpan.FromMinutes(10);
+        private const string SessionKeyPrefix = "reg:";
+
+        public AuthUseCase(
+            IUserRepository userRepository,
+            ICustomerRepository customerRepository,
+            IUnitOfWork unitOfWork,
+            IRedisService redisService,
+            IEmailService emailService)
         {
             _userRepository = userRepository;
             _customerRepository = customerRepository;
             _unitOfWork = unitOfWork;
+            _redisService = redisService;
+            _emailService = emailService;
         }
 
         public async Task<ResultModel<string?>> Login(LoginCommand command)
         {
-            User? user = await _userRepository
-                        .FindByUserNameAndDeletedAtIsNull(
-                            command.Username
-                    );
+            User? user = await _userRepository.FindByUserNameAndDeletedAtIsNull(command.Username);
 
             if (user == null) return ResultModelUtils.FillResult<string?>("404", CommonConst.WrongUsernameOrPassword, null);
 
@@ -39,25 +50,84 @@ namespace IncuSmart.Core.Usecases
             command.Username = command.Username.Trim();
             command.FullName = command.FullName.Trim();
             command.Phone = command.Phone.Trim();
-            command.Email = string.IsNullOrWhiteSpace(command.Email) ? null : command.Email.Trim();
+            command.Email = command.Email?.Trim();
 
-            User? user = await _userRepository
-                        .FindByUserNameAndDeletedAtIsNull(
-                            command.Username
-                    );
+            if (string.IsNullOrWhiteSpace(command.Email))
+                return ResultModelUtils.FillResult<string?>("400", CommonConst.EmailRequired, null);
 
-            if (user != null) return ResultModelUtils.FillResult<string?>("404", CommonConst.UsernameIsExisted, null);
+            var existingUsername = await _userRepository.FindByUserNameAndDeletedAtIsNull(command.Username);
+            if (existingUsername != null)
+                return ResultModelUtils.FillResult<string?>("409", CommonConst.UsernameIsExisted, null);
 
-            if (!string.IsNullOrWhiteSpace(command.Email))
-            {
-                var existingEmail = await _userRepository.FindByEmailAndDeletedAtIsNull(command.Email);
-                if (existingEmail != null)
-                    return ResultModelUtils.FillResult<string?>("409", CommonConst.EmailAlreadyExists, null);
-            }
+            var existingEmail = await _userRepository.FindByEmailAndDeletedAtIsNull(command.Email);
+            if (existingEmail != null)
+                return ResultModelUtils.FillResult<string?>("409", CommonConst.EmailAlreadyExists, null);
 
             var existingPhone = await _userRepository.FindByPhoneAndDeletedAtIsNull(command.Phone);
             if (existingPhone != null)
                 return ResultModelUtils.FillResult<string?>("409", CommonConst.PhoneAlreadyExists, null);
+
+            var sessionId = Guid.NewGuid().ToString("N");
+            var otp = OtpUtil.Generate6DigitOtp();
+
+            var sessionData = JsonSerializer.Serialize(new Dictionary<string, string?>
+            {
+                ["username"] = command.Username,
+                ["passwordHash"] = PasswordUtil.HashPassword(command.Password),
+                ["fullName"] = command.FullName,
+                ["email"] = command.Email,
+                ["phone"] = command.Phone,
+                ["otp"] = otp
+            });
+
+            await _redisService.SetAsync(new RedisDto
+            {
+                Key = SessionKeyPrefix + sessionId,
+                Value = sessionData,
+                Expired = SessionTtl
+            });
+
+            try
+            {
+                await _emailService.SendEmailAsync(new EmailDto
+                {
+                    To = command.Email,
+                    Subject = "[IncuSmart] Mã OTP xác thực tài khoản",
+                    Body = EmailTemplates.RegistrationOtp(command.FullName, otp)
+                });
+            }
+            catch
+            {
+                await _redisService.DeleteAsync(SessionKeyPrefix + sessionId);
+                return ResultModelUtils.FillResult<string?>("500", CommonConst.SendOtpEmailFailed, null);
+            }
+
+            return ResultModelUtils.FillResult<string?>("200", CommonConst.OtpSentSuccessfully, sessionId);
+        }
+
+        public async Task<ResultModel<string?>> VerifyRegistration(VerifyRegistrationCommand command)
+        {
+            var key = SessionKeyPrefix + command.SessionId;
+            var raw = await _redisService.GetAsync(key);
+
+            if (raw == null)
+                return ResultModelUtils.FillResult<string?>("404", CommonConst.SessionNotFoundOrExpired, null);
+
+            Dictionary<string, string?>? session;
+            try
+            {
+                session = JsonSerializer.Deserialize<Dictionary<string, string?>>(raw);
+            }
+            catch
+            {
+                return ResultModelUtils.FillResult<string?>("500", CommonConst.SessionInvalid, null);
+            }
+
+            if (session == null)
+                return ResultModelUtils.FillResult<string?>("500", CommonConst.SessionInvalid, null);
+
+            if (!session.TryGetValue("otp", out var storedOtp) || storedOtp != command.Otp)
+                return ResultModelUtils.FillResult<string?>("400", CommonConst.InvalidOtp, null);
 
             await _unitOfWork.BeginAsync();
             try
@@ -67,11 +137,11 @@ namespace IncuSmart.Core.Usecases
                 User newUser = new()
                 {
                     Id = userId,
-                    Username = command.Username,
-                    PasswordHash = PasswordUtil.HashPassword(command.Password),
-                    FullName = command.FullName,
-                    Email = command.Email,
-                    Phone = command.Phone,
+                    Username = session["username"] ?? string.Empty,
+                    PasswordHash = session["passwordHash"] ?? string.Empty,
+                    FullName = session["fullName"] ?? string.Empty,
+                    Email = session.GetValueOrDefault("email"),
+                    Phone = session["phone"] ?? string.Empty,
                     Status = BaseStatus.ACTIVE,
                     Role = UserRole.CUSTOMER,
                     CreatedBy = CommonConst.SystemActor,
@@ -93,6 +163,9 @@ namespace IncuSmart.Core.Usecases
                 await _customerRepository.Add(newCustomer);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
+
+                await _redisService.DeleteAsync(key);
+
                 return ResultModelUtils.FillResult<string?>("200", CommonConst.RegisterSuccessfully, null);
             }
             catch (Exception ex)
@@ -101,5 +174,6 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<string?>("500", ex.Message, null);
             }
         }
+
     }
 }

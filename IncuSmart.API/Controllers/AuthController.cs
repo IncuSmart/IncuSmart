@@ -60,7 +60,20 @@ namespace IncuSmart.API.Controllers
         {
             ResultModel<string?> result = await _authUseCase.Register(request.Adapt<RegisterCommand>());
 
-            return FromResult(new BaseResponse<string> 
+            return FromResult(new BaseResponse<string>
+            {
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
+        }
+
+        [HttpPost("register/verify")]
+        public async Task<IActionResult> VerifyRegistration([FromBody] VerifyRegistrationRequest request)
+        {
+            ResultModel<string?> result = await _authUseCase.VerifyRegistration(request.Adapt<VerifyRegistrationCommand>());
+
+            return FromResult(new BaseResponse<string>
             {
                 StatusCode = result.StatusCode,
                 Message = result.Message,

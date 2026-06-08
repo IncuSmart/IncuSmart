@@ -92,6 +92,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 builder.Services.Configure<SMSProperties>(
     builder.Configuration.GetSection(SMSProperties.SectionName));
 
+builder.Services.Configure<EmailProperties>(
+    builder.Configuration.GetSection(EmailProperties.SectionName));
+
 
 builder.Services.Configure<RedisOptions>(
     builder.Configuration.GetSection(RedisOptions.SectionName));

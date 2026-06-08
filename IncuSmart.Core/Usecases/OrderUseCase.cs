@@ -13,6 +13,7 @@ namespace IncuSmart.Core.Usecases
         private readonly IPaymentGatewayService _paymentGatewayService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<OrderUseCase> _logger;
+        private readonly IEmailService _emailService;
 
         public OrderUseCase(
             ICustomerRepository customerRepository,
@@ -25,7 +26,8 @@ namespace IncuSmart.Core.Usecases
             IWarrantyRepository warrantyRepository,
             IPaymentGatewayService paymentGatewayService,
             IUnitOfWork unitOfWork,
-            ILogger<OrderUseCase> logger)
+            ILogger<OrderUseCase> logger,
+            IEmailService emailService)
         {
             _customerRepository = customerRepository;
             _userRepository = userRepository;
@@ -38,6 +40,7 @@ namespace IncuSmart.Core.Usecases
             _paymentGatewayService = paymentGatewayService;
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _emailService = emailService;
         }
 
         public async Task<ResultModel<CreateOrderResponse?>> CreateOrderByCustomer(CreateOrderByCustomerCommand command)
@@ -121,6 +124,11 @@ namespace IncuSmart.Core.Usecases
 
         public async Task<ResultModel<CreateOrderResponse?>> CreateOrderByGuest(CreateOrderByGuestCommand command)
         {
+            var hasEmail = !string.IsNullOrWhiteSpace(command.Email);
+
+            if (!hasEmail && string.IsNullOrWhiteSpace(command.VerificationPass))
+                return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.VerificationPassMinLength, null);
+
             var preparedOrder = await PrepareOrderItems(command.Items);
             if (preparedOrder.Error != null)
             {
@@ -130,12 +138,15 @@ namespace IncuSmart.Core.Usecases
                     null);
             }
 
+            var verificationPass = hasEmail ? OtpUtil.Generate8CharOtp() : command.VerificationPass!;
+
             var paymentOrderCode = GeneratePaymentOrderCode();
             var salesOrderId = Guid.NewGuid();
+            var orderCode = GenerateOrderCode();
             var salesOrder = new SalesOrder
             {
                 Id = salesOrderId,
-                OrderCode = GenerateOrderCode(),
+                OrderCode = orderCode,
                 CustomerId = null,
                 OrderDate = DateTime.UtcNow,
                 ShippingAddress = command.ShippingAddress ?? string.Empty,
@@ -161,7 +172,7 @@ namespace IncuSmart.Core.Usecases
                     Phone = command.Phone,
                     Email = command.Email,
                     Description = command.Description,
-                    VerificationPassHash = PasswordUtil.HashPassword(command.VerificationPass),
+                    VerificationPassHash = PasswordUtil.HashPassword(verificationPass),
                     Status = GuestOrderStatus.PENDING_VERIFICATION,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = CommonConst.GuestActor
@@ -191,6 +202,21 @@ namespace IncuSmart.Core.Usecases
                 await _salesOrderRepository.Update(salesOrder);
 
                 await _unitOfWork.CommitAsync();
+
+                if (hasEmail)
+                {
+                    _ = _emailService.SendEmailAsync(new EmailDto
+                    {
+                        To = command.Email!,
+                        Subject = $"[IncuSmart] Mã xác thực đơn hàng {orderCode}",
+                        Body = EmailTemplates.GuestOrderOtp(command.FullName, orderCode, verificationPass)
+                    }).ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                            _logger.LogError(t.Exception, "Gửi email xác thực đơn hàng khách thất bại, OrderCode={OrderCode}", orderCode);
+                    });
+                }
+
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
             catch (Exception e)
@@ -218,10 +244,11 @@ namespace IncuSmart.Core.Usecases
             var paymentOrderCode = GeneratePaymentOrderCode();
             var salesOrderId = Guid.NewGuid();
             var actor = command.CreatedByUserId.ToString();
+            var salesOrderCode = GenerateOrderCode();
             var salesOrder = new SalesOrder
             {
                 Id = salesOrderId,
-                OrderCode = GenerateOrderCode(),
+                OrderCode = salesOrderCode,
                 CustomerId = customer.Id,
                 OrderDate = DateTime.UtcNow,
                 ShippingAddress = customer.Address ?? string.Empty,
@@ -262,6 +289,22 @@ namespace IncuSmart.Core.Usecases
                 await _salesOrderRepository.Update(salesOrder);
 
                 await _unitOfWork.CommitAsync();
+
+                if (!string.IsNullOrWhiteSpace(user.Email))
+                {
+                    var otp = OtpUtil.Generate8CharOtp();
+                    _ = _emailService.SendEmailAsync(new EmailDto
+                    {
+                        To = user.Email,
+                        Subject = $"[IncuSmart] Thông báo đơn hàng {salesOrderCode}",
+                        Body = EmailTemplates.SalesOrderOtp(user.FullName, salesOrderCode, otp)
+                    }).ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                            _logger.LogError(t.Exception, "Gửi email thông báo đơn hàng thất bại, OrderCode={OrderCode}", salesOrderCode);
+                    });
+                }
+
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
             catch (Exception e)

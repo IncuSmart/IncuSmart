@@ -7,7 +7,7 @@
         public string? Email { get; set; }
         public string? ShippingAddress { get; set; }
         public string? Description { get; set; }
-        public string VerificationPass { get; set; } = string.Empty;
+        public string? VerificationPass { get; set; }
         public List<OrderItemCommand> Items { get; set; } = new();
     }
 
