@@ -124,11 +124,6 @@ namespace IncuSmart.Core.Usecases
 
         public async Task<ResultModel<CreateOrderResponse?>> CreateOrderByGuest(CreateOrderByGuestCommand command)
         {
-            var hasEmail = !string.IsNullOrWhiteSpace(command.Email);
-
-            if (!hasEmail && string.IsNullOrWhiteSpace(command.VerificationPass))
-                return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.VerificationPassMinLength, null);
-
             var preparedOrder = await PrepareOrderItems(command.Items);
             if (preparedOrder.Error != null)
             {
@@ -138,7 +133,7 @@ namespace IncuSmart.Core.Usecases
                     null);
             }
 
-            var verificationPass = hasEmail ? OtpUtil.Generate8CharOtp() : command.VerificationPass!;
+            var verificationPass = OtpUtil.Generate8CharOtp();
 
             var paymentOrderCode = GeneratePaymentOrderCode();
             var salesOrderId = Guid.NewGuid();
@@ -203,19 +198,16 @@ namespace IncuSmart.Core.Usecases
 
                 await _unitOfWork.CommitAsync();
 
-                if (hasEmail)
+                _ = _emailService.SendEmailAsync(new EmailDto
                 {
-                    _ = _emailService.SendEmailAsync(new EmailDto
-                    {
-                        To = command.Email!,
-                        Subject = $"[IncuSmart] Mã xác thực đơn hàng {orderCode}",
-                        Body = EmailTemplates.GuestOrderOtp(command.FullName, orderCode, verificationPass)
-                    }).ContinueWith(t =>
-                    {
-                        if (t.IsFaulted)
-                            _logger.LogError(t.Exception, "Gửi email xác thực đơn hàng khách thất bại, OrderCode={OrderCode}", orderCode);
-                    });
-                }
+                    To = command.Email,
+                    Subject = $"[IncuSmart] Mã xác thực đơn hàng {orderCode}",
+                    Body = EmailTemplates.GuestOrderOtp(command.FullName, orderCode, verificationPass)
+                }).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _logger.LogError(t.Exception, "Gửi email xác thực đơn hàng khách thất bại, OrderCode={OrderCode}", orderCode);
+                });
 
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
