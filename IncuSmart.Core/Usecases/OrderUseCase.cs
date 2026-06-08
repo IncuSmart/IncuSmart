@@ -476,42 +476,35 @@ namespace IncuSmart.Core.Usecases
                     var incubator = await _incubatorRepository.FindById(orderItem.IncubatorId!.Value)
                         ?? throw new InvalidOperationException($"Assigned incubator {orderItem.IncubatorId} was not found.");
 
+                    incubator.Status = IncubatorStatus.ACTIVE;
+                    incubator.ActivatedAt ??= DateTime.UtcNow;
                     if (order.CustomerId.HasValue)
                     {
                         incubator.CustomerId = order.CustomerId;
-                        incubator.Status = IncubatorStatus.ACTIVE;
-                        incubator.ActivatedAt ??= DateTime.UtcNow;
-                    }
-                    else
-                    {
-                        incubator.Status = IncubatorStatus.RESERVED;
                     }
 
                     incubator.UpdatedAt = DateTime.UtcNow;
                     incubator.UpdatedBy = CommonConst.SystemActor;
                     await _incubatorRepository.Update(incubator);
 
-                    // Auto-create warranty when customer receives incubator
-                    if (order.CustomerId.HasValue)
+                    // Auto-create warranty for every completed order
+                    var existingWarranty = await _warrantyRepository.FindByIncubatorId(incubator.Id);
+                    if (existingWarranty == null)
                     {
-                        var existingWarranty = await _warrantyRepository.FindByIncubatorId(incubator.Id);
-                        if (existingWarranty == null)
+                        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                        var warranty = new Warranty
                         {
-                            var today = DateOnly.FromDateTime(DateTime.UtcNow);
-                            var warranty = new Warranty
-                            {
-                                Id = Guid.NewGuid(),
-                                IncubatorId = incubator.Id,
-                                WarrantyCode = $"BH-{DateTime.UtcNow:yyyyMMdd}-{CodeGenUtils.GenerateNumeric(4)}",
-                                StartDate = today,
-                                EndDate = today.AddYears(1),
-                                Notes = CommonConst.AutoWarrantyNotes,
-                                Status = BaseStatus.ACTIVE,
-                                CreatedAt = DateTime.UtcNow,
-                                CreatedBy = CommonConst.SystemActor
-                            };
-                            await _warrantyRepository.Add(warranty);
-                        }
+                            Id = Guid.NewGuid(),
+                            IncubatorId = incubator.Id,
+                            WarrantyCode = $"BH-{DateTime.UtcNow:yyyyMMdd}-{CodeGenUtils.GenerateNumeric(4)}",
+                            StartDate = today,
+                            EndDate = today.AddYears(1),
+                            Notes = CommonConst.AutoWarrantyNotes,
+                            Status = BaseStatus.ACTIVE,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = CommonConst.SystemActor
+                        };
+                        await _warrantyRepository.Add(warranty);
                     }
                 }
 
