@@ -68,7 +68,12 @@ class BigQueryRagService:
             for row in rows
         ]
 
-    def upload_and_embed(self, chunks: list[dict[str, str]], batch_size: int = 16) -> int:
+    def upload_and_embed(
+        self,
+        chunks: list[dict[str, str]],
+        batch_size: int = 16,
+        replace: bool = True,
+    ) -> int:
         bigquery = self._bigquery_module()
         client = self._get_client()
         dataset = bigquery.Dataset(self._dataset_id)
@@ -92,7 +97,11 @@ class BigQueryRagService:
                 bigquery.SchemaField("content", "STRING"),
                 bigquery.SchemaField("embedding", "FLOAT64", mode="REPEATED"),
             ],
-            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+            write_disposition=(
+                bigquery.WriteDisposition.WRITE_TRUNCATE
+                if replace
+                else bigquery.WriteDisposition.WRITE_APPEND
+            ),
         )
         client.load_table_from_json(
             embedded_chunks,
@@ -101,6 +110,16 @@ class BigQueryRagService:
             location=self._settings.bigquery_location,
         ).result()
         return len(embedded_chunks)
+
+    def count_chunks(self) -> int:
+        query = f"SELECT COUNT(1) AS total_chunks FROM `{self._embeddings_table_id}`"
+        job = self._get_client().query(
+            query,
+            location=self._settings.bigquery_location,
+            timeout=self._settings.bigquery_query_timeout_seconds,
+        )
+        row = next(iter(job.result(timeout=self._settings.bigquery_query_timeout_seconds)), None)
+        return int(row["total_chunks"]) if row is not None else 0
 
     @property
     def _dataset_id(self) -> str:

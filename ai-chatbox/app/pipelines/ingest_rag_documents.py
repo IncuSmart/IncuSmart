@@ -3,8 +3,6 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-import chromadb
-
 from app.config import get_settings
 from app.services.llm_service import LlmService
 
@@ -36,6 +34,8 @@ def load_text(path: Path) -> str:
 
 
 def ingest_documents() -> int:
+    import chromadb
+
     settings = get_settings()
     client = chromadb.PersistentClient(path=str(settings.chroma_dir))
     collection = client.get_or_create_collection(

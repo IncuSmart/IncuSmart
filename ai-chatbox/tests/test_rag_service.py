@@ -26,6 +26,14 @@ class _BigQueryRagStub:
             )
         ]
 
+    def count_chunks(self):
+        return 12
+
+    def upload_and_embed(self, chunks, replace=True):
+        assert replace is False
+        assert chunks[0]["content"]
+        return len(chunks)
+
 
 def test_rag_uses_bigquery_without_loading_local_chroma() -> None:
     service = RagService(
@@ -39,3 +47,14 @@ def test_rag_uses_bigquery_without_loading_local_chroma() -> None:
     assert result.answer == "Câu trả lời từ tài liệu cloud."
     assert result.sources[0].source == "guide.pdf"
     assert not hasattr(service, "_embedding_model")
+
+
+def test_bigquery_rag_admin_methods_do_not_load_chromadb() -> None:
+    service = RagService(
+        Settings(rag_provider="bigquery", bigquery_project_id="incusmart-test"),
+        _LlmStub(),
+        _BigQueryRagStub(),
+    )
+
+    assert service.get_chunk_count() == 12
+    assert service.ingest_text("Một đoạn hướng dẫn ấp trứng.", "guide.md", "guide") == 1
