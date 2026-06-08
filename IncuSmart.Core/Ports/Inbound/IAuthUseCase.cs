@@ -7,5 +7,6 @@
         Task<ResultModel<string?>> Register(RegisterCommand command);
 
         Task<ResultModel<string?>> VerifyRegistration(VerifyRegistrationCommand command);
+        Task<ResultModel<string?>> ResendRegistrationOtp(string sessionId);
     }
 }

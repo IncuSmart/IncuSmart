@@ -68,6 +68,18 @@ namespace IncuSmart.API.Controllers
             });
         }
 
+        [HttpPost("register/resend")]
+        public async Task<IActionResult> ResendRegistrationOtp([FromBody] ResendRegistrationOtpRequest request)
+        {
+            var result = await _authUseCase.ResendRegistrationOtp(request.SessionId);
+            return FromResult(new BaseResponse<string>
+            {
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
+        }
+
         [HttpPost("register/verify")]
         public async Task<IActionResult> VerifyRegistration([FromBody] VerifyRegistrationRequest request)
         {
