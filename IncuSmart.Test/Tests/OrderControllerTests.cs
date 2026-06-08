@@ -147,7 +147,6 @@ namespace IncuSmart.Test.Tests
                 FullName         = "Nguyễn Văn A",
                 Phone            = "0901234567",
                 Email            = "a@test.com",
-                VerificationPass = "pass1234",
                 Items            = [new OrderItemRequest { IncubatorModelId = Guid.NewGuid(), Quantity = 1 }]
             });
 
@@ -164,7 +163,7 @@ namespace IncuSmart.Test.Tests
             {
                 FullName         = "Khách",
                 Phone            = "0901234567",
-                VerificationPass = "pass1234",
+                Email            = "khach@test.com",
                 Items            = []
             });
 
@@ -181,8 +180,8 @@ namespace IncuSmart.Test.Tests
             {
                 FullName         = "Khách",
                 Phone            = "0901234567",
-                VerificationPass = "pass1234",
-                Items            = [new OrderItemRequest { IncubatorModelId = Guid.NewGuid(), Quantity = 1 }]
+                Email            = "khach@test.com",
+                Items            =[new OrderItemRequest { IncubatorModelId = Guid.NewGuid(), Quantity = 1 }]
             });
 
             result.Should().BeOfType<BadRequestObjectResult>();
@@ -198,8 +197,8 @@ namespace IncuSmart.Test.Tests
             {
                 FullName         = "Khách",
                 Phone            = "0901234567",
-                VerificationPass = "pass1234",
-                Items            = [new OrderItemRequest { IncubatorModelId = Guid.NewGuid(), Quantity = 0 }]
+                Email            = "khach@test.com",
+                Items            =[new OrderItemRequest { IncubatorModelId = Guid.NewGuid(), Quantity = 0 }]
             });
 
             result.Should().BeOfType<BadRequestObjectResult>();
@@ -215,8 +214,8 @@ namespace IncuSmart.Test.Tests
             {
                 FullName         = "Khách",
                 Phone            = "0901234567",
-                VerificationPass = "pass1234",
-                Items            = [new OrderItemRequest { IncubatorModelId = Guid.NewGuid(), Quantity = 1 }]
+                Email            = "khach@test.com",
+                Items            =[new OrderItemRequest { IncubatorModelId = Guid.NewGuid(), Quantity = 1 }]
             });
 
             var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
