@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from threading import Lock
 from typing import Any
@@ -170,6 +171,31 @@ class RagService:
                 self._client = None
                 self._collection = None
         return self._collection
+
+    def get_chunk_count(self) -> int:
+        collection = self._get_collection()
+        return collection.count() if collection is not None else 0
+
+    def ingest_text(self, text: str, source: str, topic: str) -> int:
+        from app.pipelines.ingest_rag_documents import chunk_text
+
+        collection = self._get_collection()
+        if collection is None:
+            raise RuntimeError("RAG collection không khả dụng")
+
+        chunks = chunk_text(text)
+        if not chunks:
+            return 0
+
+        embeddings = self._get_embedding_model().encode(chunks).tolist()
+        source_id = hashlib.sha256(source.encode("utf-8")).hexdigest()[:16]
+        ids = [f"{source_id}-{i}" for i in range(len(chunks))]
+        metadatas = [
+            {"source": source, "section": f"chunk-{i}", "topic": topic}
+            for i in range(len(chunks))
+        ]
+        collection.upsert(ids=ids, documents=chunks, metadatas=metadatas, embeddings=embeddings)
+        return len(chunks)
 
     def _empty_answer(self) -> RAGAnswer:
         return RAGAnswer(

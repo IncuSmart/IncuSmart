@@ -106,6 +106,12 @@ builder.Services.AddHttpClient<IAiPredictionClient, AiPredictionClient>(client =
     client.BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/");
     client.Timeout = TimeSpan.FromSeconds(15);
 });
+builder.Services.AddHttpClient<IAiAdminClient, AiAdminClient>(client =>
+{
+    var baseUrl = builder.Configuration["AiService:BaseUrl"] ?? "http://127.0.0.1:8001";
+    client.BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/");
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

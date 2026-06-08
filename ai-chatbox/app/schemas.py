@@ -183,3 +183,23 @@ class ChatResponse(BaseModel):
     model_artifact_version: int | None = None
     model_training_dataset_sha256: str | None = None
     validation_warnings: list[str] = []
+
+
+class AdminTrainingSyncResponse(BaseModel):
+    cleared_cache_groups: int
+    cleared_synthetic_cache: bool
+    cleared_prebuilt_model_cache: bool
+    message: str
+
+
+class AdminRagUploadResponse(BaseModel):
+    filename: str
+    chunks_added: int
+    total_chunks_in_collection: int
+    message: str
+
+
+class AdminRagStatusResponse(BaseModel):
+    collection_name: str
+    total_chunks: int
+    provider: str
