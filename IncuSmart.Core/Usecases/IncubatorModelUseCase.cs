@@ -90,12 +90,46 @@ namespace IncuSmart.Core.Usecases
             }
         }
 
-        public async Task<ResultModel<IncubatorModel?>> GetById(Guid id)
+        public async Task<ResultModel<IncubatorModelDetailResponse?>> GetById(Guid id)
         {
             var model = await _modelRepository.FindById(id);
-            return model == null
-                ? ResultModelUtils.FillResult<IncubatorModel?>("404", CommonConst.IncubatorModelNotFound, null)
-                : ResultModelUtils.FillResult<IncubatorModel?>("200", CommonConst.Success, model);
+            if (model == null)
+                return ResultModelUtils.FillResult<IncubatorModelDetailResponse?>("404", CommonConst.IncubatorModelNotFound, null);
+
+            var modelConfigs = await _modelConfigRepository.FindByModelId(id);
+            var configIds = modelConfigs.Select(x => x.ConfigId).Distinct().ToList();
+            var configs = configIds.Count > 0 ? await _configRepository.FindByIds(configIds) : [];
+            var configMap = configs.ToDictionary(x => x.Id);
+
+            var detail = new IncubatorModelDetailResponse
+            {
+                Id = model.Id,
+                ModelCode = model.ModelCode,
+                Name = model.Name,
+                Description = model.Description,
+                UnitPrice = model.UnitPrice,
+                ImageUrl = model.ImageUrl,
+                Status = model.Status.ToString(),
+                Configs = modelConfigs
+                    .Where(mc => configMap.ContainsKey(mc.ConfigId))
+                    .Select(mc =>
+                    {
+                        var cfg = configMap[mc.ConfigId];
+                        return new ModelConfigWithDetail
+                        {
+                            ModelConfigId = mc.Id,
+                            ConfigId = mc.ConfigId,
+                            ConfigCode = cfg.Code,
+                            ConfigName = cfg.Name,
+                            ConfigType = cfg.Type,
+                            ConfigUnit = cfg.Unit,
+                            Quantity = mc.Quantity,
+                            Required = mc.Required
+                        };
+                    }).ToList()
+            };
+
+            return ResultModelUtils.FillResult<IncubatorModelDetailResponse?>("200", CommonConst.Success, detail);
         }
 
         public async Task<ResultModel<List<ModelConfigWithDetail>>> GetConfigs(Guid modelId)
