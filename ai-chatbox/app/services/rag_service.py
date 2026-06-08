@@ -5,8 +5,6 @@ from dataclasses import dataclass
 from threading import Lock
 from typing import Any
 
-import chromadb
-
 from app.config import Settings
 from app.schemas import SourceItem
 from app.services.bigquery_rag_service import BigQueryRagService
@@ -36,9 +34,53 @@ class RagService:
         self._collection_lock = Lock()
 
     def answer(self, question: str) -> RAGAnswer:
-        if self._bigquery_rag_service is not None and self._bigquery_rag_service.is_enabled():
+        if self._is_bigquery_enabled():
             return self._answer_with_bigquery(question)
         return self._answer_with_chroma(question)
+
+    def get_chunk_count(self) -> int:
+        if self._is_bigquery_enabled():
+            return self._bigquery_rag_service.count_chunks()
+        collection = self._get_collection()
+        return collection.count() if collection is not None else 0
+
+    def ingest_text(self, text: str, source: str, topic: str) -> int:
+        from app.pipelines.ingest_rag_documents import chunk_text
+
+        chunks = chunk_text(text)
+        if not chunks:
+            return 0
+
+        source_id = hashlib.sha256(source.encode("utf-8")).hexdigest()[:16]
+        ids = [f"{source_id}-{index}" for index in range(len(chunks))]
+        metadatas = [
+            {"source": source, "section": f"chunk-{index}", "topic": topic}
+            for index in range(len(chunks))
+        ]
+
+        if self._is_bigquery_enabled():
+            payload = [
+                {
+                    "chunk_id": ids[index],
+                    "source": source,
+                    "section": metadatas[index]["section"],
+                    "topic": topic,
+                    "content": chunk,
+                }
+                for index, chunk in enumerate(chunks)
+            ]
+            return self._bigquery_rag_service.upload_and_embed(payload, replace=False)
+
+        collection = self._get_collection()
+        if collection is None:
+            raise RuntimeError("Hệ thống dữ liệu không khả dụng.")
+
+        embeddings = self._embed_documents(chunks)
+        collection.upsert(ids=ids, documents=chunks, metadatas=metadatas, embeddings=embeddings)
+        return len(chunks)
+
+    def _is_bigquery_enabled(self) -> bool:
+        return self._bigquery_rag_service is not None and self._bigquery_rag_service.is_enabled()
 
     def _answer_with_chroma(self, question: str) -> RAGAnswer:
         collection = self._get_collection()
@@ -170,6 +212,8 @@ class RagService:
             if self._collection is not None:
                 return self._collection
             try:
+                import chromadb
+
                 self._client = chromadb.PersistentClient(path=str(self._settings.chroma_dir))
                 self._collection = self._client.get_or_create_collection(
                     name=self.COLLECTION_NAME,
@@ -179,31 +223,6 @@ class RagService:
                 self._client = None
                 self._collection = None
         return self._collection
-
-    def get_chunk_count(self) -> int:
-        collection = self._get_collection()
-        return collection.count() if collection is not None else 0
-
-    def ingest_text(self, text: str, source: str, topic: str) -> int:
-        from app.pipelines.ingest_rag_documents import chunk_text
-
-        collection = self._get_collection()
-        if collection is None:
-            raise RuntimeError("Hệ thống dữ liệu không khả dụng.")
-
-        chunks = chunk_text(text)
-        if not chunks:
-            return 0
-
-        embeddings = self._embed_documents(chunks)
-        source_id = hashlib.sha256(source.encode("utf-8")).hexdigest()[:16]
-        ids = [f"{source_id}-{i}" for i in range(len(chunks))]
-        metadatas = [
-            {"source": source, "section": f"chunk-{i}", "topic": topic}
-            for i in range(len(chunks))
-        ]
-        collection.upsert(ids=ids, documents=chunks, metadatas=metadatas, embeddings=embeddings)
-        return len(chunks)
 
     def _empty_answer(self) -> RAGAnswer:
         return RAGAnswer(
