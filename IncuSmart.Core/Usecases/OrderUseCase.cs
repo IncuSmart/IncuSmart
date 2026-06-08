@@ -1027,6 +1027,67 @@ namespace IncuSmart.Core.Usecases
             };
         }
 
+        public async Task<ResultModel<bool>> ResendVerificationPass(Guid orderId)
+        {
+            var order = await _salesOrderRepository.FindById(orderId);
+            if (order == null)
+                return ResultModelUtils.FillResult<bool>("404", CommonConst.OrderNotFound, false);
+
+            var newPass = OtpUtil.Generate8CharOtp();
+
+            if (order.CustomerId == null)
+            {
+                var guestInfo = await _guestOrderInfoRepository.FindByOrderId(orderId);
+                if (guestInfo == null)
+                    return ResultModelUtils.FillResult<bool>("404", CommonConst.GuestOrderInformationNotFound, false);
+
+                if (string.IsNullOrWhiteSpace(guestInfo.Email))
+                    return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderNoEmailToResend, false);
+
+                guestInfo.VerificationPassHash = PasswordUtil.HashPassword(newPass);
+                guestInfo.UpdatedAt = DateTime.UtcNow;
+                guestInfo.UpdatedBy = CommonConst.SystemActor;
+
+                await _unitOfWork.BeginAsync();
+                await _guestOrderInfoRepository.Update(guestInfo);
+                await _unitOfWork.CommitAsync();
+
+                _ = _emailService.SendEmailAsync(new EmailDto
+                {
+                    To = guestInfo.Email,
+                    Subject = $"[IncuSmart] Mã xác thực mới cho đơn hàng {order.OrderCode}",
+                    Body = EmailTemplates.GuestOrderOtp(guestInfo.FullName, order.OrderCode!, newPass)
+                }).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _logger.LogError(t.Exception, "Gửi lại email xác thực đơn hàng khách thất bại, OrderId={OrderId}", orderId);
+                });
+            }
+            else
+            {
+                var customer = await _customerRepository.FindById(order.CustomerId.Value);
+                if (customer == null)
+                    return ResultModelUtils.FillResult<bool>("404", CommonConst.CustomerNotFound, false);
+
+                var user = await _userRepository.FindById(customer.UserId);
+                if (user == null || string.IsNullOrWhiteSpace(user.Email))
+                    return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderNoEmailToResend, false);
+
+                _ = _emailService.SendEmailAsync(new EmailDto
+                {
+                    To = user.Email,
+                    Subject = $"[IncuSmart] Mã xác thực mới cho đơn hàng {order.OrderCode}",
+                    Body = EmailTemplates.SalesOrderOtp(user.FullName, order.OrderCode!, newPass)
+                }).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _logger.LogError(t.Exception, "Gửi lại email xác thực đơn hàng thất bại, OrderId={OrderId}", orderId);
+                });
+            }
+
+            return ResultModelUtils.FillResult<bool>("200", CommonConst.VerificationPassResent, true);
+        }
+
         private static void ApplyPaymentLink(SalesOrder salesOrder, PaymentLinkResult paymentLink, string actor)
         {
             salesOrder.PaymentLinkId = paymentLink.PaymentLinkId;

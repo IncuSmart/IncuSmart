@@ -80,6 +80,8 @@ namespace IncuSmart.Core.Common
         public const string OnlyShippingGuestOrdersCanBeClaimed = "Chỉ có thể nhận đơn hàng khách vãng lai đang được giao";
         public const string GuestOrderNotReadyToBeClaimed = "Đơn hàng khách vãng lai chưa sẵn sàng để nhận";
         public const string InvalidVerificationPass = "Mã xác thực không hợp lệ";
+        public const string VerificationPassResent = "Mã xác thực mới đã được gửi qua email";
+        public const string OrderNoEmailToResend = "Đơn hàng không có địa chỉ email để gửi mã xác thực";
         public const string OrderMissingAssignedIncubators = "Đơn hàng đang thiếu máy ấp đã được gán";
         public const string AtLeastOneItemRequired = "Yêu cầu ít nhất một mặt hàng";
         public const string QuantityMustBeGreaterThanZero = "Số lượng phải lớn hơn 0";
