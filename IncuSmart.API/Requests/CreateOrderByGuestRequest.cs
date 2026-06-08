@@ -21,9 +21,8 @@ namespace IncuSmart.API.Requests
         public string? ShippingAddress { get; set; }
         public string? Description { get; set; }
 
-        [Required]
         [MinLength(6, ErrorMessage = CommonConst.VerificationPassMinLength)]
-        public string VerificationPass { get; set; } = string.Empty;
+        public string? VerificationPass { get; set; }
 
         [Required]
         [MinLength(1, ErrorMessage = CommonConst.AtLeastOneItemRequired)]

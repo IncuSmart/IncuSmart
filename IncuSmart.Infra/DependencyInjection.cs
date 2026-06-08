@@ -77,6 +77,7 @@
         // Inject utils
         services.AddSingleton<IRedisService, RedisService>();
         services.AddSingleton<ISMSService, SMSService>();
+        services.AddSingleton<IEmailService, EmailService>();
         services.AddHostedService<PayOSWebhookRegistrationHostedService>();
 
         // MQTT
