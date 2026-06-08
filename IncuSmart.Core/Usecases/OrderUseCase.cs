@@ -1056,9 +1056,7 @@ namespace IncuSmart.Core.Usecases
                 PaymentOrderCode = order.PaymentOrderCode,
                 PaymentLinkId = order.PaymentLinkId,
                 QrCode = order.QrCode,
-                PaymentLinkExpiredAt = order.PaymentLinkExpiredAt.HasValue
-                    ? DateTime.SpecifyKind(order.PaymentLinkExpiredAt.Value, DateTimeKind.Utc)
-                    : null
+                PaymentLinkExpiredAt = order.PaymentLinkExpiredAt
             };
         }
 

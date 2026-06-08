@@ -27,6 +27,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(o =>
     {
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        o.JsonSerializerOptions.Converters.Add(new IncuSmart.API.Converters.UtcDateTimeConverter());
+        o.JsonSerializerOptions.Converters.Add(new IncuSmart.API.Converters.UtcNullableDateTimeConverter());
     }
 );
 
