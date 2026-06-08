@@ -14,7 +14,7 @@ Build hệ thống AI hỗ trợ vận hành máy ấp trứng gia cầm, gồm 
 - **ML Model**: scikit-learn (Random Forest) — chạy local trên VPS
 - **Chat interface**: Streamlit
 - **LLM**: Gemini API (free tier — 1500 requests/ngày)
-- **RAG**: sentence-transformers + ChromaDB
+- **RAG**: Gemini Embedding API + ChromaDB vector store
 - **Text-to-SQL**: Gemini API
 - **Ngôn ngữ**: Python
 - **Chi phí**: $0
@@ -84,8 +84,8 @@ notes
 - User hỏi tiếng Việt → Gemini chuyển thành SQL → query PostgreSQL → trả kết quả
 - Xử lý ở Gemini server, VPS không chịu tải
 
-### ③ RAG (sentence-transformers + ChromaDB)
-- Embed tài liệu kỹ thuật 1 lần, lưu ChromaDB local
+### ③ RAG (Gemini Embedding API + ChromaDB)
+- Embed tài liệu kỹ thuật qua Gemini, lưu vector vào ChromaDB local
 - Mỗi query: tìm chunk liên quan → ghép prompt → Gemini trả lời
 - RAM cần: ~550MB
 

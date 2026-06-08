@@ -4,9 +4,9 @@ import hashlib
 from pathlib import Path
 
 import chromadb
-from sentence_transformers import SentenceTransformer
 
 from app.config import get_settings
+from app.services.llm_service import LlmService
 
 
 def chunk_text(text: str, chunk_size: int = 800, overlap: int = 120) -> list[str]:
@@ -38,8 +38,11 @@ def load_text(path: Path) -> str:
 def ingest_documents() -> int:
     settings = get_settings()
     client = chromadb.PersistentClient(path=str(settings.chroma_dir))
-    collection = client.get_or_create_collection(name="incusmart_knowledge")
-    embedding_model = SentenceTransformer(settings.embedding_model)
+    collection = client.get_or_create_collection(
+        name="incusmart_knowledge",
+        embedding_function=None,
+    )
+    llm_service = LlmService(settings)
 
     doc_paths = [
         path
@@ -53,7 +56,10 @@ def ingest_documents() -> int:
         chunks = chunk_text(text)
         if not chunks:
             continue
-        embeddings = embedding_model.encode(chunks).tolist()
+        embeddings = [
+            embedding.values
+            for embedding in llm_service.embed_texts(chunks, "RETRIEVAL_DOCUMENT")
+        ]
         relative_source = str(doc_path.relative_to(settings.docs_dir)).replace("\\", "/")
         source_id = hashlib.sha256(relative_source.encode("utf-8")).hexdigest()[:16]
         ids = [f"{source_id}-{index}" for index, _ in enumerate(chunks)]

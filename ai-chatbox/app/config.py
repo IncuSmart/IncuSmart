@@ -29,7 +29,6 @@ class Settings(BaseSettings):
     synthetic_data_path: Path = Path("./storage/synthetic/gemini_synthetic_dataset.json")
     ml_export_path: Path = Path("./storage/ml-export/recommendation_training_rows.jsonl")
 
-    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     default_egg_type: str = "chicken"
     default_template_name: str = "default"
     knowledge_enabled: bool = True

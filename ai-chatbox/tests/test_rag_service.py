@@ -38,4 +38,4 @@ def test_rag_uses_bigquery_without_loading_local_chroma() -> None:
 
     assert result.answer == "Câu trả lời từ tài liệu cloud."
     assert result.sources[0].source == "guide.pdf"
-    assert service._embedding_model is None
+    assert not hasattr(service, "_embedding_model")
