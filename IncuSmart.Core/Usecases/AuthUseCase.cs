@@ -11,6 +11,7 @@ namespace IncuSmart.Core.Usecases
         private readonly IUnitOfWork _unitOfWork;
         private readonly IRedisService _redisService;
         private readonly IEmailService _emailService;
+        private readonly ILogger<AuthUseCase> _logger;
 
         private static readonly TimeSpan SessionTtl = TimeSpan.FromMinutes(10);
         private const string SessionKeyPrefix = "reg:";
@@ -20,13 +21,15 @@ namespace IncuSmart.Core.Usecases
             ICustomerRepository customerRepository,
             IUnitOfWork unitOfWork,
             IRedisService redisService,
-            IEmailService emailService)
+            IEmailService emailService,
+            ILogger<AuthUseCase> logger)
         {
             _userRepository = userRepository;
             _customerRepository = customerRepository;
             _unitOfWork = unitOfWork;
             _redisService = redisService;
             _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task<ResultModel<string?>> Login(LoginCommand command)
@@ -87,20 +90,16 @@ namespace IncuSmart.Core.Usecases
                 Expired = SessionTtl
             });
 
-            try
+            _ = _emailService.SendEmailAsync(new EmailDto
             {
-                await _emailService.SendEmailAsync(new EmailDto
-                {
-                    To = command.Email,
-                    Subject = "[IncuSmart] Mã OTP xác thực tài khoản",
-                    Body = EmailTemplates.RegistrationOtp(command.FullName, otp)
-                });
-            }
-            catch
+                To = command.Email,
+                Subject = "[IncuSmart] Mã OTP xác thực tài khoản",
+                Body = EmailTemplates.RegistrationOtp(command.FullName, otp)
+            }).ContinueWith(t =>
             {
-                await _redisService.DeleteAsync(SessionKeyPrefix + sessionId);
-                return ResultModelUtils.FillResult<string?>("500", CommonConst.SendOtpEmailFailed, null);
-            }
+                if (t.IsFaulted)
+                    _logger.LogError(t.Exception, "Gửi email OTP đăng ký thất bại, SessionId={SessionId}", sessionId);
+            });
 
             return ResultModelUtils.FillResult<string?>("200", CommonConst.OtpSentSuccessfully, sessionId);
         }
@@ -175,5 +174,53 @@ namespace IncuSmart.Core.Usecases
             }
         }
 
+        public async Task<ResultModel<string?>> ResendRegistrationOtp(string sessionId)
+        {
+            var oldKey = SessionKeyPrefix + sessionId;
+            var raw = await _redisService.GetAsync(oldKey);
+
+            if (raw == null)
+                return ResultModelUtils.FillResult<string?>("404", CommonConst.SessionNotFoundOrExpired, null);
+
+            Dictionary<string, string?>? session;
+            try { session = JsonSerializer.Deserialize<Dictionary<string, string?>>(raw); }
+            catch { return ResultModelUtils.FillResult<string?>("500", CommonConst.SessionInvalid, null); }
+
+            if (session == null)
+                return ResultModelUtils.FillResult<string?>("500", CommonConst.SessionInvalid, null);
+
+            var email = session.GetValueOrDefault("email");
+            var fullName = session.GetValueOrDefault("fullName") ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(email))
+                return ResultModelUtils.FillResult<string?>("400", CommonConst.EmailRequired, null);
+
+            var newOtp = OtpUtil.Generate6DigitOtp();
+            var newSessionId = Guid.NewGuid().ToString("N");
+
+            session["otp"] = newOtp;
+            var newSessionData = JsonSerializer.Serialize(session);
+
+            await _redisService.DeleteAsync(oldKey);
+            await _redisService.SetAsync(new RedisDto
+            {
+                Key = SessionKeyPrefix + newSessionId,
+                Value = newSessionData,
+                Expired = SessionTtl
+            });
+
+            _ = _emailService.SendEmailAsync(new EmailDto
+            {
+                To = email,
+                Subject = "[IncuSmart] Mã OTP xác thực tài khoản (gửi lại)",
+                Body = EmailTemplates.RegistrationOtp(fullName, newOtp)
+            }).ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    _logger.LogError(t.Exception, "Gửi lại email OTP đăng ký thất bại, SessionId={SessionId}", newSessionId);
+            });
+
+            return ResultModelUtils.FillResult<string?>("200", CommonConst.OtpSentSuccessfully, newSessionId);
+        }
     }
 }
