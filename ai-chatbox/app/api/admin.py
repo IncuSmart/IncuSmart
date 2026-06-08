@@ -4,19 +4,12 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from app.schemas import AdminRagStatusResponse, AdminRagUploadResponse, AdminTrainingAddRequest, AdminTrainingAddResponse, AdminTrainingSyncResponse
+from app.schemas import AdminRagStatusResponse, AdminRagUploadResponse, AdminTrainingAddRequest, AdminTrainingAddResponse
 from app.services.chat_orchestrator import ChatOrchestrator, get_chat_orchestrator
 
 admin_router = APIRouter(prefix="/admin")
 
 _ALLOWED_SUFFIXES = {".txt", ".md", ".pdf"}
-
-
-@admin_router.post("/training/reload", response_model=AdminTrainingSyncResponse)
-def reload_training(
-    orchestrator: ChatOrchestrator = Depends(get_chat_orchestrator),
-) -> AdminTrainingSyncResponse:
-    return orchestrator.sync_training()
 
 
 @admin_router.post("/training/data", response_model=AdminTrainingAddResponse)

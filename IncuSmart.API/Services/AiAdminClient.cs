@@ -5,17 +5,10 @@ namespace IncuSmart.API.Services
 {
     public interface IAiAdminClient
     {
-        Task<AiTrainingReloadResult?> ReloadTrainingAsync(CancellationToken ct = default);
         Task<AiTrainingAddResult?> AddTrainingDataAsync(AiTrainingAddRequest request, CancellationToken ct = default);
         Task<AiRagUploadResult?> UploadRagDocumentAsync(IFormFile file, CancellationToken ct = default);
         Task<AiRagStatusResult?> GetRagStatusAsync(CancellationToken ct = default);
     }
-
-    public record AiTrainingReloadResult(
-        int ClearedCacheGroups,
-        bool ClearedSyntheticCache,
-        bool ClearedPrebuiltModelCache,
-        string Message);
 
     public record AiTrainingAddResult(
         int RecordsAdded,
@@ -61,13 +54,6 @@ namespace IncuSmart.API.Services
         {
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
         };
-
-        public async Task<AiTrainingReloadResult?> ReloadTrainingAsync(CancellationToken ct = default)
-        {
-            using var response = await httpClient.PostAsync("admin/training/reload", null, ct);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AiTrainingReloadResult>(AiJsonOptions, ct);
-        }
 
         public async Task<AiTrainingAddResult?> AddTrainingDataAsync(AiTrainingAddRequest request, CancellationToken ct = default)
         {
