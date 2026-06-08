@@ -764,7 +764,7 @@ namespace IncuSmart.Core.Usecases
 
             if (order.PaymentStatus == PaymentStatus.PENDING
                 && order.PaymentLinkExpiredAt.HasValue
-                && order.PaymentLinkExpiredAt.Value < DateTime.UtcNow)
+                && ToUtc(order.PaymentLinkExpiredAt.Value) < DateTime.UtcNow)
             {
                 await RefreshPaymentLinkAsync(order, currentUserId);
             }
@@ -798,7 +798,7 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.OrderPaymentLinkCannotBeRefreshed, null);
 
             // Link còn hiệu lực thì trả về luôn, không cần gọi lại payOS
-            if (order.PaymentLinkExpiredAt.HasValue && order.PaymentLinkExpiredAt.Value > DateTime.UtcNow)
+            if (order.PaymentLinkExpiredAt.HasValue && ToUtc(order.PaymentLinkExpiredAt.Value) > DateTime.UtcNow)
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.PaymentLinkStillValid, ToCreateOrderResponse(order));
 
             try
@@ -833,7 +833,7 @@ namespace IncuSmart.Core.Usecases
             if (order.PaymentStatus != PaymentStatus.PENDING)
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.OrderPaymentLinkCannotBeRefreshed, null);
 
-            if (order.PaymentLinkExpiredAt.HasValue && order.PaymentLinkExpiredAt.Value > DateTime.UtcNow)
+            if (order.PaymentLinkExpiredAt.HasValue && ToUtc(order.PaymentLinkExpiredAt.Value) > DateTime.UtcNow)
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.PaymentLinkStillValid, ToCreateOrderResponse(order));
 
             try
@@ -1059,6 +1059,14 @@ namespace IncuSmart.Core.Usecases
                 PaymentLinkExpiredAt = order.PaymentLinkExpiredAt
             };
         }
+
+        // Normalize DateTime to UTC regardless of Kind returned by Npgsql.
+        // Kind=Local (legacy mode timestamptz) → ToUniversalTime() gives true UTC.
+        // Kind=Unspecified (timestamp col) → assume stored value is already UTC.
+        // Kind=Utc → no-op.
+        private static DateTime ToUtc(DateTime dt) => dt.Kind == DateTimeKind.Local
+            ? dt.ToUniversalTime()
+            : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
         private static string BuildPaymentDescription(string? orderCode)
         {
