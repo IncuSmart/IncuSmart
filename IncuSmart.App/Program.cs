@@ -27,6 +27,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(o =>
     {
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        o.JsonSerializerOptions.Converters.Add(new IncuSmart.API.Converters.UtcDateTimeConverter());
+        o.JsonSerializerOptions.Converters.Add(new IncuSmart.API.Converters.UtcNullableDateTimeConverter());
     }
 );
 
@@ -92,6 +94,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 builder.Services.Configure<SMSProperties>(
     builder.Configuration.GetSection(SMSProperties.SectionName));
 
+builder.Services.Configure<EmailProperties>(
+    builder.Configuration.GetSection(EmailProperties.SectionName));
+
 
 builder.Services.Configure<RedisOptions>(
     builder.Configuration.GetSection(RedisOptions.SectionName));
@@ -102,6 +107,12 @@ builder.Services.AddHttpClient<IAiPredictionClient, AiPredictionClient>(client =
     var baseUrl = builder.Configuration["AiService:BaseUrl"] ?? "http://127.0.0.1:8001";
     client.BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/");
     client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddHttpClient<IAiAdminClient, AiAdminClient>(client =>
+{
+    var baseUrl = builder.Configuration["AiService:BaseUrl"] ?? "http://127.0.0.1:8001";
+    client.BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/");
+    client.Timeout = TimeSpan.FromSeconds(60);
 });
 
 builder.Services

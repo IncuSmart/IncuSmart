@@ -27,6 +27,16 @@ namespace IncuSmart.Test.Tests
             Status    = IncuSmart.Core.Enums.BaseStatus.ACTIVE
         };
 
+        private static readonly IncubatorModelDetailResponse SampleIncubatorModelDetail = new()
+        {
+            Id        = ModelId,
+            ModelCode = "XL-500",
+            Name      = "Máy Ấp Trứng XL-500",
+            UnitPrice = 5_000_000,
+            Status    = "ACTIVE",
+            Configs   = []
+        };
+
         public IncubatorModelControllerTests()
         {
             _controller = new IncubatorModelController(_modelUseCase.Object, _auditLogUseCase.Object);
@@ -133,7 +143,7 @@ namespace IncuSmart.Test.Tests
         public async Task GetById_ExistingModel_Returns200()
         {
             _modelUseCase.Setup(x => x.GetById(ModelId))
-                .ReturnsAsync(ControllerTestBase.OkResult<IncubatorModel?>(SampleIncubatorModel));
+                .ReturnsAsync(ControllerTestBase.OkResult<IncubatorModelDetailResponse?>(SampleIncubatorModelDetail));
 
             var result = await _controller.GetById(ModelId);
 
@@ -144,7 +154,7 @@ namespace IncuSmart.Test.Tests
         public async Task GetById_NotFound_Returns404()
         {
             _modelUseCase.Setup(x => x.GetById(It.IsAny<Guid>()))
-                .ReturnsAsync(ControllerTestBase.NotFoundResult<IncubatorModel?>("Không tìm thấy model"));
+                .ReturnsAsync(ControllerTestBase.NotFoundResult<IncubatorModelDetailResponse?>("Không tìm thấy model"));
 
             var result = await _controller.GetById(Guid.NewGuid());
 

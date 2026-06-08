@@ -13,6 +13,7 @@ namespace IncuSmart.Core.Usecases
         private readonly IPaymentGatewayService _paymentGatewayService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<OrderUseCase> _logger;
+        private readonly IEmailService _emailService;
 
         public OrderUseCase(
             ICustomerRepository customerRepository,
@@ -25,7 +26,8 @@ namespace IncuSmart.Core.Usecases
             IWarrantyRepository warrantyRepository,
             IPaymentGatewayService paymentGatewayService,
             IUnitOfWork unitOfWork,
-            ILogger<OrderUseCase> logger)
+            ILogger<OrderUseCase> logger,
+            IEmailService emailService)
         {
             _customerRepository = customerRepository;
             _userRepository = userRepository;
@@ -38,6 +40,7 @@ namespace IncuSmart.Core.Usecases
             _paymentGatewayService = paymentGatewayService;
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _emailService = emailService;
         }
 
         public async Task<ResultModel<CreateOrderResponse?>> CreateOrderByCustomer(CreateOrderByCustomerCommand command)
@@ -130,12 +133,15 @@ namespace IncuSmart.Core.Usecases
                     null);
             }
 
+            var verificationPass = OtpUtil.Generate8CharOtp();
+
             var paymentOrderCode = GeneratePaymentOrderCode();
             var salesOrderId = Guid.NewGuid();
+            var orderCode = GenerateOrderCode();
             var salesOrder = new SalesOrder
             {
                 Id = salesOrderId,
-                OrderCode = GenerateOrderCode(),
+                OrderCode = orderCode,
                 CustomerId = null,
                 OrderDate = DateTime.UtcNow,
                 ShippingAddress = command.ShippingAddress ?? string.Empty,
@@ -161,7 +167,7 @@ namespace IncuSmart.Core.Usecases
                     Phone = command.Phone,
                     Email = command.Email,
                     Description = command.Description,
-                    VerificationPassHash = PasswordUtil.HashPassword(command.VerificationPass),
+                    VerificationPassHash = PasswordUtil.HashPassword(verificationPass),
                     Status = GuestOrderStatus.PENDING_VERIFICATION,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = CommonConst.GuestActor
@@ -191,6 +197,18 @@ namespace IncuSmart.Core.Usecases
                 await _salesOrderRepository.Update(salesOrder);
 
                 await _unitOfWork.CommitAsync();
+
+                _ = _emailService.SendEmailAsync(new EmailDto
+                {
+                    To = command.Email,
+                    Subject = $"[IncuSmart] Mã xác thực đơn hàng {orderCode}",
+                    Body = EmailTemplates.GuestOrderOtp(command.FullName, orderCode, verificationPass)
+                }).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _logger.LogError(t.Exception, "Gửi email xác thực đơn hàng khách thất bại, OrderCode={OrderCode}", orderCode);
+                });
+
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
             catch (Exception e)
@@ -218,10 +236,11 @@ namespace IncuSmart.Core.Usecases
             var paymentOrderCode = GeneratePaymentOrderCode();
             var salesOrderId = Guid.NewGuid();
             var actor = command.CreatedByUserId.ToString();
+            var salesOrderCode = GenerateOrderCode();
             var salesOrder = new SalesOrder
             {
                 Id = salesOrderId,
-                OrderCode = GenerateOrderCode(),
+                OrderCode = salesOrderCode,
                 CustomerId = customer.Id,
                 OrderDate = DateTime.UtcNow,
                 ShippingAddress = customer.Address ?? string.Empty,
@@ -262,6 +281,22 @@ namespace IncuSmart.Core.Usecases
                 await _salesOrderRepository.Update(salesOrder);
 
                 await _unitOfWork.CommitAsync();
+
+                if (!string.IsNullOrWhiteSpace(user.Email))
+                {
+                    var otp = OtpUtil.Generate8CharOtp();
+                    _ = _emailService.SendEmailAsync(new EmailDto
+                    {
+                        To = user.Email,
+                        Subject = $"[IncuSmart] Thông báo đơn hàng {salesOrderCode}",
+                        Body = EmailTemplates.SalesOrderOtp(user.FullName, salesOrderCode, otp)
+                    }).ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                            _logger.LogError(t.Exception, "Gửi email thông báo đơn hàng thất bại, OrderCode={OrderCode}", salesOrderCode);
+                    });
+                }
+
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.CreateOrderAndPaymentLinkSuccessfully, ToCreateOrderResponse(salesOrder));
             }
             catch (Exception e)
@@ -441,42 +476,35 @@ namespace IncuSmart.Core.Usecases
                     var incubator = await _incubatorRepository.FindById(orderItem.IncubatorId!.Value)
                         ?? throw new InvalidOperationException($"Assigned incubator {orderItem.IncubatorId} was not found.");
 
+                    incubator.Status = IncubatorStatus.ACTIVE;
+                    incubator.ActivatedAt ??= DateTime.UtcNow;
                     if (order.CustomerId.HasValue)
                     {
                         incubator.CustomerId = order.CustomerId;
-                        incubator.Status = IncubatorStatus.ACTIVE;
-                        incubator.ActivatedAt ??= DateTime.UtcNow;
-                    }
-                    else
-                    {
-                        incubator.Status = IncubatorStatus.RESERVED;
                     }
 
                     incubator.UpdatedAt = DateTime.UtcNow;
                     incubator.UpdatedBy = CommonConst.SystemActor;
                     await _incubatorRepository.Update(incubator);
 
-                    // Auto-create warranty when customer receives incubator
-                    if (order.CustomerId.HasValue)
+                    // Auto-create warranty for every completed order
+                    var existingWarranty = await _warrantyRepository.FindByIncubatorId(incubator.Id);
+                    if (existingWarranty == null)
                     {
-                        var existingWarranty = await _warrantyRepository.FindByIncubatorId(incubator.Id);
-                        if (existingWarranty == null)
+                        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                        var warranty = new Warranty
                         {
-                            var today = DateOnly.FromDateTime(DateTime.UtcNow);
-                            var warranty = new Warranty
-                            {
-                                Id = Guid.NewGuid(),
-                                IncubatorId = incubator.Id,
-                                WarrantyCode = $"BH-{DateTime.UtcNow:yyyyMMdd}-{CodeGenUtils.GenerateNumeric(4)}",
-                                StartDate = today,
-                                EndDate = today.AddYears(1),
-                                Notes = CommonConst.AutoWarrantyNotes,
-                                Status = BaseStatus.ACTIVE,
-                                CreatedAt = DateTime.UtcNow,
-                                CreatedBy = CommonConst.SystemActor
-                            };
-                            await _warrantyRepository.Add(warranty);
-                        }
+                            Id = Guid.NewGuid(),
+                            IncubatorId = incubator.Id,
+                            WarrantyCode = $"BH-{DateTime.UtcNow:yyyyMMdd}-{CodeGenUtils.GenerateNumeric(4)}",
+                            StartDate = today,
+                            EndDate = today.AddYears(1),
+                            Notes = CommonConst.AutoWarrantyNotes,
+                            Status = BaseStatus.ACTIVE,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = CommonConst.SystemActor
+                        };
+                        await _warrantyRepository.Add(warranty);
                     }
                 }
 
@@ -721,7 +749,7 @@ namespace IncuSmart.Core.Usecases
 
             if (order.PaymentStatus == PaymentStatus.PENDING
                 && order.PaymentLinkExpiredAt.HasValue
-                && order.PaymentLinkExpiredAt.Value < DateTime.UtcNow)
+                && ToUtc(order.PaymentLinkExpiredAt.Value) < DateTime.UtcNow)
             {
                 await RefreshPaymentLinkAsync(order, currentUserId);
             }
@@ -755,7 +783,7 @@ namespace IncuSmart.Core.Usecases
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.OrderPaymentLinkCannotBeRefreshed, null);
 
             // Link còn hiệu lực thì trả về luôn, không cần gọi lại payOS
-            if (order.PaymentLinkExpiredAt.HasValue && order.PaymentLinkExpiredAt.Value > DateTime.UtcNow)
+            if (order.PaymentLinkExpiredAt.HasValue && ToUtc(order.PaymentLinkExpiredAt.Value) > DateTime.UtcNow)
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.PaymentLinkStillValid, ToCreateOrderResponse(order));
 
             try
@@ -790,7 +818,7 @@ namespace IncuSmart.Core.Usecases
             if (order.PaymentStatus != PaymentStatus.PENDING)
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("400", CommonConst.OrderPaymentLinkCannotBeRefreshed, null);
 
-            if (order.PaymentLinkExpiredAt.HasValue && order.PaymentLinkExpiredAt.Value > DateTime.UtcNow)
+            if (order.PaymentLinkExpiredAt.HasValue && ToUtc(order.PaymentLinkExpiredAt.Value) > DateTime.UtcNow)
                 return ResultModelUtils.FillResult<CreateOrderResponse?>("200", CommonConst.PaymentLinkStillValid, ToCreateOrderResponse(order));
 
             try
@@ -992,6 +1020,67 @@ namespace IncuSmart.Core.Usecases
             };
         }
 
+        public async Task<ResultModel<bool>> ResendVerificationPass(Guid orderId)
+        {
+            var order = await _salesOrderRepository.FindById(orderId);
+            if (order == null)
+                return ResultModelUtils.FillResult<bool>("404", CommonConst.OrderNotFound, false);
+
+            var newPass = OtpUtil.Generate8CharOtp();
+
+            if (order.CustomerId == null)
+            {
+                var guestInfo = await _guestOrderInfoRepository.FindByOrderId(orderId);
+                if (guestInfo == null)
+                    return ResultModelUtils.FillResult<bool>("404", CommonConst.GuestOrderInformationNotFound, false);
+
+                if (string.IsNullOrWhiteSpace(guestInfo.Email))
+                    return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderNoEmailToResend, false);
+
+                guestInfo.VerificationPassHash = PasswordUtil.HashPassword(newPass);
+                guestInfo.UpdatedAt = DateTime.UtcNow;
+                guestInfo.UpdatedBy = CommonConst.SystemActor;
+
+                await _unitOfWork.BeginAsync();
+                await _guestOrderInfoRepository.Update(guestInfo);
+                await _unitOfWork.CommitAsync();
+
+                _ = _emailService.SendEmailAsync(new EmailDto
+                {
+                    To = guestInfo.Email,
+                    Subject = $"[IncuSmart] Mã xác thực mới cho đơn hàng {order.OrderCode}",
+                    Body = EmailTemplates.GuestOrderOtp(guestInfo.FullName, order.OrderCode!, newPass)
+                }).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _logger.LogError(t.Exception, "Gửi lại email xác thực đơn hàng khách thất bại, OrderId={OrderId}", orderId);
+                });
+            }
+            else
+            {
+                var customer = await _customerRepository.FindById(order.CustomerId.Value);
+                if (customer == null)
+                    return ResultModelUtils.FillResult<bool>("404", CommonConst.CustomerNotFound, false);
+
+                var user = await _userRepository.FindById(customer.UserId);
+                if (user == null || string.IsNullOrWhiteSpace(user.Email))
+                    return ResultModelUtils.FillResult<bool>("400", CommonConst.OrderNoEmailToResend, false);
+
+                _ = _emailService.SendEmailAsync(new EmailDto
+                {
+                    To = user.Email,
+                    Subject = $"[IncuSmart] Mã xác thực mới cho đơn hàng {order.OrderCode}",
+                    Body = EmailTemplates.SalesOrderOtp(user.FullName, order.OrderCode!, newPass)
+                }).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _logger.LogError(t.Exception, "Gửi lại email xác thực đơn hàng thất bại, OrderId={OrderId}", orderId);
+                });
+            }
+
+            return ResultModelUtils.FillResult<bool>("200", CommonConst.VerificationPassResent, true);
+        }
+
         private static void ApplyPaymentLink(SalesOrder salesOrder, PaymentLinkResult paymentLink, string actor)
         {
             salesOrder.PaymentLinkId = paymentLink.PaymentLinkId;
@@ -1013,11 +1102,17 @@ namespace IncuSmart.Core.Usecases
                 PaymentOrderCode = order.PaymentOrderCode,
                 PaymentLinkId = order.PaymentLinkId,
                 QrCode = order.QrCode,
-                PaymentLinkExpiredAt = order.PaymentLinkExpiredAt.HasValue
-                    ? DateTime.SpecifyKind(order.PaymentLinkExpiredAt.Value, DateTimeKind.Utc)
-                    : null
+                PaymentLinkExpiredAt = order.PaymentLinkExpiredAt
             };
         }
+
+        // Normalize DateTime to UTC regardless of Kind returned by Npgsql.
+        // Kind=Local (legacy mode timestamptz) → ToUniversalTime() gives true UTC.
+        // Kind=Unspecified (timestamp col) → assume stored value is already UTC.
+        // Kind=Utc → no-op.
+        private static DateTime ToUtc(DateTime dt) => dt.Kind == DateTimeKind.Local
+            ? dt.ToUniversalTime()
+            : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
         private static string BuildPaymentDescription(string? orderCode)
         {

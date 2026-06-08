@@ -192,6 +192,19 @@ namespace IncuSmart.API.Controllers
             });
         }
 
+        [Authorize(Roles = "ADMIN,SALES_STAFF")]
+        [HttpPost("{orderId:guid}/resend-verification")]
+        public async Task<IActionResult> ResendVerificationPass(Guid orderId)
+        {
+            var result = await _orderUseCase.ResendVerificationPass(orderId);
+            return FromResult(new BaseResponse<bool>
+            {
+                StatusCode = result.StatusCode,
+                Message = result.Message,
+                Data = result.Data
+            });
+        }
+
         [Authorize(Roles = "ADMIN,SALES_STAFF,CUSTOMER")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)

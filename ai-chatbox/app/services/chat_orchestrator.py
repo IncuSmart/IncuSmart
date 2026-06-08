@@ -6,6 +6,10 @@ from app.config import Settings
 from app.config import get_settings
 from app.repositories.postgres_repository import PostgresRepository
 from app.schemas import (
+    AdminRagStatusResponse,
+    AdminRagUploadResponse,
+    AdminTrainingAddResponse,
+    AdminTrainingSyncResponse,
     BigQueryStatusResponse,
     ChatRequest,
     ChatResponse,
@@ -110,6 +114,37 @@ class ChatOrchestrator:
 
     def ml_benchmark(self, payload: ChatRequest) -> MlBenchmarkResponse:
         return self._recommend_service.benchmark_recommend(payload.message, payload.user_context)
+
+    def sync_training(self) -> AdminTrainingSyncResponse:
+        result = self.clear_ml_cache()
+        return AdminTrainingSyncResponse(
+            cleared_cache_groups=result.cleared_db_reference_groups,
+            cleared_synthetic_cache=result.cleared_synthetic_cache,
+            cleared_prebuilt_model_cache=result.cleared_prebuilt_model_cache,
+            message="Cache đã được xóa, dữ liệu mùa ấp mới sẽ được tải lại tự động khi có yêu cầu tiếp theo",
+        )
+
+    def add_training_record(self, record: dict) -> AdminTrainingAddResponse:
+        return self._recommend_service.add_synthetic_record(record)
+
+    def upload_rag_document(self, text: str, filename: str, topic: str) -> AdminRagUploadResponse:
+        chunks_added = self._rag_service.ingest_text(text, source=filename, topic=topic)
+        total = self._rag_service.get_chunk_count()
+        return AdminRagUploadResponse(
+            filename=filename,
+            chunks_added=chunks_added,
+            total_chunks_in_collection=total,
+            message=f"Đã nạp {chunks_added} đoạn văn bản từ tài liệu '{filename}'",
+        )
+
+    def get_rag_status(self) -> AdminRagStatusResponse:
+        bq = self._rag_service._bigquery_rag_service
+        provider = "bigquery" if (bq is not None and bq.is_enabled()) else "chroma"
+        return AdminRagStatusResponse(
+            collection_name=self._rag_service.COLLECTION_NAME,
+            total_chunks=self._rag_service.get_chunk_count(),
+            provider=provider,
+        )
 
 
 _orchestrator: ChatOrchestrator | None = None

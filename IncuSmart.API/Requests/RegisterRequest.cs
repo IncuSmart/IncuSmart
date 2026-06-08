@@ -16,8 +16,10 @@
         [MaxLength(50, ErrorMessage = "Full name must be at most 50 characters long")]
         public string FullName { get; set; } = default!;
 
-        [EmailAddress(ErrorMessage = "Invalid email address")]
-        public string? Email { get; set; }
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Địa chỉ email không hợp lệ")]
+        [MaxLength(100, ErrorMessage = CommonConst.EmailMaxLength)]
+        public string Email { get; set; } = string.Empty;
 
         [NotNull]
         [RegularExpression(@"^(0)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-9])[0-9]{7}$",

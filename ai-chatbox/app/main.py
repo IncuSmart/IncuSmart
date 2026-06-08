@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin import admin_router
 from app.api.chat import debug_router, router as chat_router
 from app.config import Settings, get_settings
 
@@ -22,6 +23,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
     )
     application.include_router(chat_router)
+    application.include_router(admin_router)
     if resolved_settings.enable_debug_endpoints:
         application.include_router(debug_router)
     return application

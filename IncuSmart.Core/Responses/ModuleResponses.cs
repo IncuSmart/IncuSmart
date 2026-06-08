@@ -100,6 +100,18 @@ namespace IncuSmart.Core.Responses
         public List<MaintenanceTicketConfigItemDetail> ConfigItems { get; set; } = [];
     }
 
+    public class IncubatorModelDetailResponse
+    {
+        public Guid Id { get; set; }
+        public string ModelCode { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public long UnitPrice { get; set; }
+        public string? ImageUrl { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public List<ModelConfigWithDetail> Configs { get; set; } = [];
+    }
+
     public class ModelConfigWithDetail
     {
         public Guid ModelConfigId { get; set; }
