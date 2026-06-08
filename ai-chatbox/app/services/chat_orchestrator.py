@@ -8,6 +8,7 @@ from app.repositories.postgres_repository import PostgresRepository
 from app.schemas import (
     AdminRagStatusResponse,
     AdminRagUploadResponse,
+    AdminTrainingAddResponse,
     AdminTrainingSyncResponse,
     BigQueryStatusResponse,
     ChatRequest,
@@ -122,6 +123,9 @@ class ChatOrchestrator:
             cleared_prebuilt_model_cache=result.cleared_prebuilt_model_cache,
             message="Cache đã được xóa, dữ liệu mùa ấp mới sẽ được tải lại tự động khi có yêu cầu tiếp theo",
         )
+
+    def add_training_record(self, record: dict) -> AdminTrainingAddResponse:
+        return self._recommend_service.add_synthetic_record(record)
 
     def upload_rag_document(self, text: str, filename: str, topic: str) -> AdminRagUploadResponse:
         chunks_added = self._rag_service.ingest_text(text, source=filename, topic=topic)

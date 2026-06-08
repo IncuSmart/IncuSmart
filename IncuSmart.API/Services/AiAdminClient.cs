@@ -5,16 +5,37 @@ namespace IncuSmart.API.Services
 {
     public interface IAiAdminClient
     {
-        Task<AiTrainingSyncResult?> SyncTrainingAsync(CancellationToken ct = default);
+        Task<AiTrainingAddResult?> AddTrainingDataAsync(AiTrainingAddRequest request, CancellationToken ct = default);
         Task<AiRagUploadResult?> UploadRagDocumentAsync(IFormFile file, CancellationToken ct = default);
         Task<AiRagStatusResult?> GetRagStatusAsync(CancellationToken ct = default);
     }
 
-    public record AiTrainingSyncResult(
-        int ClearedCacheGroups,
-        bool ClearedSyntheticCache,
-        bool ClearedPrebuiltModelCache,
+    public record AiTrainingAddResult(
+        int RecordsAdded,
+        int TotalRecords,
+        List<string> ValidationIssues,
         string Message);
+
+    public record AiTrainingPhaseParameter(
+        string ConfigCode,
+        float TargetValue,
+        float MinValue,
+        float MaxValue);
+
+    public record AiTrainingPhase(
+        int PhaseIndex,
+        string PhaseName,
+        int DayStart,
+        int DayEnd,
+        List<AiTrainingPhaseParameter> Parameters);
+
+    public record AiTrainingAddRequest(
+        string EggType,
+        int TotalEggs,
+        float ExpectedSuccessRate,
+        float? AmbientTemperature,
+        float? AmbientHumidity,
+        List<AiTrainingPhase> Phases);
 
     public record AiRagUploadResult(
         string Filename,
@@ -34,11 +55,11 @@ namespace IncuSmart.API.Services
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
         };
 
-        public async Task<AiTrainingSyncResult?> SyncTrainingAsync(CancellationToken ct = default)
+        public async Task<AiTrainingAddResult?> AddTrainingDataAsync(AiTrainingAddRequest request, CancellationToken ct = default)
         {
-            using var response = await httpClient.PostAsync("admin/training/sync", null, ct);
+            using var response = await httpClient.PostAsJsonAsync("admin/training/data", request, AiJsonOptions, ct);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AiTrainingSyncResult>(AiJsonOptions, ct);
+            return await response.Content.ReadFromJsonAsync<AiTrainingAddResult>(AiJsonOptions, ct);
         }
 
         public async Task<AiRagUploadResult?> UploadRagDocumentAsync(IFormFile file, CancellationToken ct = default)

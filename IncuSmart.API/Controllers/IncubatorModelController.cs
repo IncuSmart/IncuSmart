@@ -41,7 +41,7 @@ namespace IncuSmart.API.Controllers
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _modelUseCase.GetById(id);
-            return FromResult(new BaseResponse<IncubatorModel?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
+            return FromResult(new BaseResponse<IncubatorModelDetailResponse?> { StatusCode = result.StatusCode, Message = result.Message, Data = result.Data });
         }
 
         [Authorize(Roles = "ADMIN,TECHNICIAN")]

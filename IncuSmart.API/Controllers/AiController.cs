@@ -8,16 +8,16 @@ namespace IncuSmart.API.Controllers
     [Authorize(Roles = "ADMIN")]
     public class AiController(IAiAdminClient _aiAdminClient) : ApiControllerBase
     {
-        [HttpPost("training/sync")]
-        public async Task<IActionResult> SyncTraining(CancellationToken ct)
+        [HttpPost("training/data")]
+        public async Task<IActionResult> AddTrainingData([FromBody] AiTrainingAddRequest request, CancellationToken ct)
         {
             try
             {
-                var result = await _aiAdminClient.SyncTrainingAsync(ct);
-                return Ok(new BaseResponse<AiTrainingSyncResult>
+                var result = await _aiAdminClient.AddTrainingDataAsync(request, ct);
+                return Ok(new BaseResponse<AiTrainingAddResult>
                 {
                     StatusCode = "200",
-                    Message = result?.Message ?? "Đồng bộ thành công",
+                    Message = result?.Message ?? "Thêm dữ liệu thành công",
                     Data = result
                 });
             }
