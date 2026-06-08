@@ -73,7 +73,7 @@ Ingest tài liệu RAG:
 python scripts/ingest_rag.py
 ```
 
-Re-run ingest whenever `AI_CHATBOX_EMBEDDING_MODEL` changes so stored document vectors and runtime query vectors use the same embedding space.
+Re-run ingest whenever `AI_CHATBOX_LLM_EMBEDDING_MODEL` changes so stored document vectors and runtime query vectors use the same Gemini embedding space.
 
 Test Gemini connection:
 

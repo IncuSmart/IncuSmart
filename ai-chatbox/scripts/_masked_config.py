@@ -41,7 +41,6 @@ def load_masked_config(env_path: Path) -> dict[str, object]:
         "docs_dir": raw.get("AI_CHATBOX_DOCS_DIR"),
         "synthetic_data_path": raw.get("AI_CHATBOX_SYNTHETIC_DATA_PATH"),
         "ml_export_path": raw.get("AI_CHATBOX_ML_EXPORT_PATH"),
-        "embedding_model": raw.get("AI_CHATBOX_EMBEDDING_MODEL"),
         "llm_provider": raw.get("AI_CHATBOX_LLM_PROVIDER"),
         "llm_model": raw.get("AI_CHATBOX_LLM_MODEL"),
         "llm_base_url": raw.get("AI_CHATBOX_LLM_BASE_URL"),

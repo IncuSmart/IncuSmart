@@ -6,7 +6,6 @@ from threading import Lock
 from typing import Any
 
 import chromadb
-from sentence_transformers import SentenceTransformer
 
 from app.config import Settings
 from app.schemas import SourceItem
@@ -35,7 +34,6 @@ class RagService:
         self._client: Any | None = None
         self._collection: Any | None = None
         self._collection_lock = Lock()
-        self._embedding_model: SentenceTransformer | None = None
 
     def answer(self, question: str) -> RAGAnswer:
         if self._bigquery_rag_service is not None and self._bigquery_rag_service.is_enabled():
@@ -53,9 +51,9 @@ class RagService:
             return self._empty_answer()
 
         try:
-            query_embedding = self._get_embedding_model().encode([question]).tolist()
+            query_embedding = self._embed_query(question)
             result = collection.query(
-                query_embeddings=query_embedding,
+                query_embeddings=[query_embedding],
                 n_results=min(collection.count(), self._settings.max_rag_chunks * 5),
             )
         except Exception:
@@ -131,32 +129,39 @@ class RagService:
         result = self._llm_service.complete(
             self._build_answer_prompt(question, [chunk.content for chunk in chunks])
         )
-        return RAGAnswer(answer=result.text or "Chưa thể tạo câu trả lời từ dữ liệu hiện có.", sources=sources)
+        return RAGAnswer(
+            answer=result.text or "Chưa thể tạo câu trả lời từ dữ liệu hiện có.",
+            sources=sources,
+        )
 
     def _build_answer_prompt(self, question: str, snippets: list[str]) -> str:
         language_instruction = {
-            "vi": "Chi tra loi bang tieng Viet.",
+            "vi": "Chỉ trả lời bằng tiếng Việt.",
             "en": "Answer only in English.",
         }.get(self._settings.answer_language.lower(), f"Answer only in {self._settings.answer_language}.")
         return (
-            "Ban la tro ly ky thuat may ap trung.\n"
+            "Bạn là trợ lý kỹ thuật máy ấp trứng.\n"
             f"{language_instruction}\n"
-            "Chi dung thong tin trong Context; khong dung kien thuc ngoai Context.\n"
-            "Neu Context khong du de tra loi, khong nhac toi 'tai lieu' hay 'context'. "
-            "Hay tu choi tu nhien bang tieng Viet, co the dien dat da dang, nhung phai noi ro rang cau hoi nam ngoai pham vi chu de ap trung.\n"
-            "Neu Context co thuat ngu tieng Anh, hay dich hoac giai thich ngan trong ngoac.\n"
-            "Voi do am, uu tien bieu dien bang %RH; neu co wet bulb, giai thich do la nhiet do bau uot, khong phai do am.\n"
-            "Voi nhiet do, uu tien tra ve do Celsius (°C). Neu Context chi co Fahrenheit, hay quy doi sang °C va dat Fahrenheit trong ngoac.\n"
-            "Tra loi toi da 3 cau, ngan gon, thuc dung, tranh liet ke dai.\n\n"
-            f"Cau hoi: {question}\n\n"
+            "Chỉ dùng thông tin trong Context; không dùng kiến thức ngoài Context.\n"
+            "Nếu Context không đủ để trả lời, không nhắc tới 'tài liệu' hay 'context'. "
+            "Hãy từ chối tự nhiên bằng tiếng Việt, có thể diễn đạt đa dạng, nhưng phải nói rõ câu hỏi nằm ngoài phạm vi chủ đề ấp trứng.\n"
+            "Nếu Context có thuật ngữ tiếng Anh, hãy dịch hoặc giải thích ngắn trong ngoặc.\n"
+            "Với độ ẩm, ưu tiên biểu diễn bằng %RH; nếu có wet bulb, giải thích đó là nhiệt độ bầu ướt, không phải độ ẩm.\n"
+            "Với nhiệt độ, ưu tiên trả về độ Celsius (°C). Nếu Context chỉ có Fahrenheit, hãy quy đổi sang °C và đặt Fahrenheit trong ngoặc.\n"
+            "Trả lời tối đa 3 câu, ngắn gọn, thực dụng, tránh liệt kê dài.\n\n"
+            f"Câu hỏi: {question}\n\n"
             "Context:\n"
             + "\n\n".join(snippets)
         )
 
-    def _get_embedding_model(self) -> SentenceTransformer:
-        if self._embedding_model is None:
-            self._embedding_model = SentenceTransformer(self._settings.embedding_model)
-        return self._embedding_model
+    def _embed_documents(self, documents: list[str]) -> list[list[float]]:
+        return [
+            embedding.values
+            for embedding in self._llm_service.embed_texts(documents, "RETRIEVAL_DOCUMENT")
+        ]
+
+    def _embed_query(self, query: str) -> list[float]:
+        return self._llm_service.embed_texts([query], "RETRIEVAL_QUERY")[0].values
 
     def _get_collection(self):
         if self._collection is not None:
@@ -166,7 +171,10 @@ class RagService:
                 return self._collection
             try:
                 self._client = chromadb.PersistentClient(path=str(self._settings.chroma_dir))
-                self._collection = self._client.get_or_create_collection(name=self.COLLECTION_NAME)
+                self._collection = self._client.get_or_create_collection(
+                    name=self.COLLECTION_NAME,
+                    embedding_function=None,
+                )
             except Exception:
                 self._client = None
                 self._collection = None
@@ -181,13 +189,13 @@ class RagService:
 
         collection = self._get_collection()
         if collection is None:
-            raise RuntimeError("RAG collection không khả dụng")
+            raise RuntimeError("Hệ thống dữ liệu không khả dụng.")
 
         chunks = chunk_text(text)
         if not chunks:
             return 0
 
-        embeddings = self._get_embedding_model().encode(chunks).tolist()
+        embeddings = self._embed_documents(chunks)
         source_id = hashlib.sha256(source.encode("utf-8")).hexdigest()[:16]
         ids = [f"{source_id}-{i}" for i in range(len(chunks))]
         metadatas = [
