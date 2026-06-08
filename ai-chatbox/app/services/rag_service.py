@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass
 from threading import Lock
 from typing import Any
@@ -9,6 +10,8 @@ from app.config import Settings
 from app.schemas import SourceItem
 from app.services.bigquery_rag_service import BigQueryRagService
 from app.services.llm_service import LlmService
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -40,7 +43,11 @@ class RagService:
 
     def get_chunk_count(self) -> int:
         if self._is_bigquery_enabled():
-            return self._bigquery_rag_service.count_chunks()
+            try:
+                return self._bigquery_rag_service.count_chunks()
+            except Exception:
+                logger.exception("BigQuery RAG chunk count failed")
+                return 0
         collection = self._get_collection()
         return collection.count() if collection is not None else 0
 
@@ -69,7 +76,11 @@ class RagService:
                 }
                 for index, chunk in enumerate(chunks)
             ]
-            return self._bigquery_rag_service.upload_and_embed(payload, replace=False)
+            try:
+                return self._bigquery_rag_service.upload_and_embed(payload, replace=False)
+            except Exception as exc:
+                logger.exception("BigQuery RAG upload failed")
+                raise RuntimeError("Hiện không thể ghi vào hệ thống dữ liệu.") from exc
 
         collection = self._get_collection()
         if collection is None:
@@ -155,6 +166,7 @@ class RagService:
         try:
             chunks = self._bigquery_rag_service.retrieve(question, self._settings.max_rag_chunks)
         except Exception:
+            logger.exception("BigQuery RAG retrieval failed")
             return RAGAnswer(answer="Hiện không truy cập được vào hệ thống dữ liệu.", sources=[])
         if not chunks:
             return self._empty_answer()
