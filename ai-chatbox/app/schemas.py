@@ -192,6 +192,22 @@ class AdminTrainingSyncResponse(BaseModel):
     message: str
 
 
+class AdminTrainingAddRequest(BaseModel):
+    egg_type: str
+    total_eggs: int
+    expected_success_rate: float
+    ambient_temperature: float | None = None
+    ambient_humidity: float | None = None
+    phases: list[dict[str, Any]]
+
+
+class AdminTrainingAddResponse(BaseModel):
+    records_added: int
+    total_records: int
+    validation_issues: list[str]
+    message: str
+
+
 class AdminRagUploadResponse(BaseModel):
     filename: str
     chunks_added: int

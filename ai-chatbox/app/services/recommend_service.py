@@ -538,6 +538,32 @@ class RecommendService:
             results=results,
         )
 
+    def add_synthetic_record(self, record: dict) -> "AdminTrainingAddResponse":
+        from app.schemas import AdminTrainingAddResponse
+
+        issues = validate_synthetic_record(record)
+        if issues:
+            return AdminTrainingAddResponse(
+                records_added=0,
+                total_records=len(self._load_synthetic_records()),
+                validation_issues=issues,
+                message=f"Dữ liệu không hợp lệ: {', '.join(issues)}",
+            )
+
+        path = Path(self._settings.synthetic_data_path)
+        records = self._load_synthetic_records()
+        records.append(record)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
+        self._synthetic_records_cache = None
+
+        return AdminTrainingAddResponse(
+            records_added=1,
+            total_records=len(records),
+            validation_issues=[],
+            message=f"Đã thêm 1 record training. Tổng: {len(records)} records",
+        )
+
     def export_training_rows(self) -> list[dict[str, float | str]]:
         rows = self._export_db_training_rows()
         rows.extend(self._export_synthetic_training_rows())
